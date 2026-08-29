@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/* Rich Text Box styles (Horizontal and Vertical with Word compatibility) */
+.rich-textbox {
+  box-sizing: border-box;
+  display: inline-block;
+  vertical-align: top;
+  position: relative;
+  resize: both;
+  overflow: auto;
+  cursor: text;
+  background-color: #ffffff;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.rich-textbox:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+}
+
+.rich-textbox:focus,
+.rich-textbox:focus-within {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5), 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.rich-textbox-vertical {
+  writing-mode: vertical-rl !important;
+  -webkit-writing-mode: vertical-rl !important;
+  text-orientation: upright !important;
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", "Noto Serif JP", serif;
+  line-height: 1.8;
+  letter-spacing: 0.04em;
+  padding: 12px 10px;
+}
+
+.rich-textbox-horizontal {
+  writing-mode: horizontal-tb !important;
+  line-height: 1.6;
+  padding: 10px 12px;
+}
+
+/* Rich text images and figures */
+#rich-text-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  vertical-align: middle;
+}
+
+#rich-text-editor figure[data-image-figure="true"] {
+  display: block;
+  margin: 12px 0;
+  clear: both;
+}
+
+#rich-text-editor figure[data-image-figure="true"] img {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#rich-text-editor figure[data-image-figure="true"] img:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#rich-text-editor figcaption {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 4px;
+}
+

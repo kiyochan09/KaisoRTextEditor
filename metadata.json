@@ -1,0 +1,6 @@
+{
+  "name": "Hierarchical Rich Note App",
+  "description": "A hierarchical rich text note manager mimicking RightNote with offline storage, full rich-text, and embedded manual/design documents.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
