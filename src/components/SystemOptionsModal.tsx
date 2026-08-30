@@ -39,6 +39,7 @@ export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
   const [availableFonts, setAvailableFonts] = useState<SystemFontInfo[]>(() => getAllAvailableFonts());
   const [isLoadingPCFonts, setIsLoadingPCFonts] = useState<boolean>(false);
   const [pcScanMessage, setPcScanMessage] = useState<string>('');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Sync state when modal opens
   useEffect(() => {
@@ -117,11 +118,10 @@ export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
   };
 
   const handleResetDefaults = () => {
-    if (window.confirm('システムオプション設定を既定値（デフォルト）に戻しますか？')) {
-      setTempSettings(DEFAULT_SYSTEM_SETTINGS);
-      setIsCustomFont(false);
-      setCustomFontInput('');
-    }
+    setTempSettings(DEFAULT_SYSTEM_SETTINGS);
+    setIsCustomFont(false);
+    setCustomFontInput('');
+    setShowResetConfirm(false);
   };
 
   const handleSave = () => {
@@ -745,14 +745,37 @@ export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
 
         {/* Footer Actions */}
         <div className="px-6 py-3.5 bg-slate-100 border-t border-slate-300 flex items-center justify-between">
-          <button
-            id="btn-reset-default-options"
-            onClick={handleResetDefaults}
-            className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-md border border-slate-300 font-medium flex items-center space-x-1.5 transition"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>初期値にリセット</span>
-          </button>
+          <div className="relative">
+            <button
+              id="btn-reset-default-options"
+              onClick={() => setShowResetConfirm(true)}
+              className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-md border border-slate-300 font-medium flex items-center space-x-1.5 transition"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>初期値にリセット</span>
+            </button>
+            {showResetConfirm && (
+              <div className="absolute bottom-full left-0 mb-2 p-3 bg-white border border-red-200 shadow-xl rounded-lg z-20 w-64 animate-in fade-in zoom-in-95">
+                <p className="text-xs font-bold text-slate-800 mb-2 leading-relaxed">
+                  設定を既定値（デフォルト）に戻しますか？
+                </p>
+                <div className="flex space-x-2 justify-start">
+                  <button
+                    onClick={() => setShowResetConfirm(false)}
+                    className="px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-md transition"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={handleResetDefaults}
+                    className="px-2.5 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition shadow-sm font-medium"
+                  >
+                    リセットする
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center space-x-2.5">
             <button

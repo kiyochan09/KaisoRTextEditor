@@ -3,7 +3,7 @@ import { DatabaseProfile } from '../types';
 import { 
   Database, Plus, Trash2, Edit2, Check, X, RefreshCw, 
   FolderTree, Calendar, Layers, ShieldCheck, Copy, ArrowRight,
-  Folder, HardDrive, Laptop, FolderOpen
+  Folder, HardDrive, Laptop, FolderOpen, Upload, Download
 } from 'lucide-react';
 
 interface DatabaseManagerModalProps {
@@ -17,6 +17,9 @@ interface DatabaseManagerModalProps {
   onUpdateStorageLocation: (dbId: string, location: string, path: string) => void;
   onDeleteDatabase: (dbId: string) => void;
   onResetDemoDatabase: () => void;
+  onImportDatabase?: (file: File) => void;
+  onExportAllDatabases?: () => void;
+  onImportAllDatabases?: (file: File) => void;
 }
 
 export const DatabaseManagerModal: React.FC<DatabaseManagerModalProps> = ({
@@ -30,6 +33,9 @@ export const DatabaseManagerModal: React.FC<DatabaseManagerModalProps> = ({
   onUpdateStorageLocation,
   onDeleteDatabase,
   onResetDemoDatabase,
+  onImportDatabase,
+  onExportAllDatabases,
+  onImportAllDatabases,
 }) => {
   const [editingDbId, setEditingDbId] = useState<string | null>(null);
   const [editName, setEditName] = useState<string>('');
@@ -38,6 +44,7 @@ export const DatabaseManagerModal: React.FC<DatabaseManagerModalProps> = ({
   const [editingStorageDbId, setEditingStorageDbId] = useState<string | null>(null);
   const [editStoragePath, setEditStoragePath] = useState<string>('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   if (!isOpen) return null;
 
@@ -100,6 +107,22 @@ export const DatabaseManagerModal: React.FC<DatabaseManagerModalProps> = ({
             登録中のデータベース: <span className="font-bold text-slate-900">{databases.length} 件</span>
           </div>
           <div className="flex items-center space-x-2">
+            <label className="cursor-pointer px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs flex items-center space-x-1 transition shadow-sm">
+              <Upload className="w-3.5 h-3.5" />
+              <span>DB読込</span>
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file && onImportDatabase) {
+                    onImportDatabase(file);
+                  }
+                  e.target.value = ''; // Reset input
+                }}
+              />
+            </label>
             <button
               onClick={() => {
                 onClose();
@@ -110,18 +133,40 @@ export const DatabaseManagerModal: React.FC<DatabaseManagerModalProps> = ({
               <Plus className="w-3.5 h-3.5" />
               <span>新規DBを作成</span>
             </button>
-            <button
-              onClick={() => {
-                if (window.confirm('DEMOデータベースのデータを初期サンプル状態に戻しますか？')) {
-                  onResetDemoDatabase();
-                }
-              }}
-              className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs flex items-center space-x-1 transition"
-              title="DEMOデータを初期サンプルデータにリセット"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-              <span>DEMOを初期化</span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowResetConfirm(true)}
+                className="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs flex items-center space-x-1 transition"
+                title="DEMOデータを初期サンプルデータにリセット"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                <span>DEMOを初期化</span>
+              </button>
+              {showResetConfirm && (
+                <div className="absolute top-full right-0 mt-2 p-3 bg-white border border-red-200 shadow-xl rounded-lg z-20 w-64 animate-in fade-in zoom-in-95">
+                  <p className="text-xs font-bold text-slate-800 mb-2 leading-relaxed">
+                    DEMOデータベースのデータを初期サンプル状態に戻しますか？
+                  </p>
+                  <div className="flex space-x-2 justify-end">
+                    <button
+                      onClick={() => setShowResetConfirm(false)}
+                      className="px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded-md transition"
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={() => {
+                        onResetDemoDatabase();
+                        setShowResetConfirm(false);
+                      }}
+                      className="px-2.5 py-1.5 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition shadow-sm font-medium"
+                    >
+                      初期化する
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -325,6 +370,49 @@ export const DatabaseManagerModal: React.FC<DatabaseManagerModalProps> = ({
               </div>
             );
           })}
+        </div>
+
+
+        {/* Backup and Restore Section */}
+        <div className="p-4 bg-blue-50/50 border-t border-slate-200 shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1">
+                <HardDrive className="w-4 h-4 text-blue-600" />
+                全環境の一括バックアップと移行 (PC買い替え用)
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                作成済みのすべてのデータベースを1つのファイルとして書き出し、新しいPCで復元できます。
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={onExportAllDatabases}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 flex items-center gap-1 transition"
+                title="全データベースをエクスポート"
+              >
+                <Download className="w-3.5 h-3.5" />
+                バックアップを保存
+              </button>
+              
+              <label className="cursor-pointer px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1 transition shadow-sm">
+                <Upload className="w-3.5 h-3.5" />
+                <span>環境を復元...</span>
+                <input
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file && onImportAllDatabases) {
+                      onImportAllDatabases(file);
+                    }
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            </div>
+          </div>
         </div>
 
         {/* Footer */}

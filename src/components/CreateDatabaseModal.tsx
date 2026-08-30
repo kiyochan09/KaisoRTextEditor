@@ -60,11 +60,12 @@ export const CreateDatabaseModal: React.FC<CreateDatabaseModalProps> = ({
           setStorageType('local_folder');
         }
       } else {
-        alert('お使いのブラウザ環境ではネイティブフォルダ選択ダイアログが制限されているため、下のテキストボックスからパスを直接ご指定いただけます。');
+        alert('お使いのブラウザはフォルダ選択機能に未対応です。PC版のChromeやEdge等をご利用ください。');
       }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         console.warn('Directory picker cancelled or unsupported', err);
+        alert('【プレビュー環境の制限】\nブラウザのセキュリティ制限により、この画面のままではフォルダ選択ダイアログを開けません。\n\n画面右上の「新しいタブで開く」アイコン（↗️）から別タブでアプリを開き直していただくか、下のテキストボックスに直接パスを入力してください。');
       }
     } finally {
       setIsSelectingNativeFolder(false);

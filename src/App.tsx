@@ -1,3 +1,4 @@
+import localforage from 'localforage';
 import React, { useState, useRef, useEffect } from 'react';
 import { Notebook, TreeNode, NoteType, TagItem, SpreadsheetData, BookmarkItem, DatabaseProfile, TextFormatState, TabFolder, TextStylePreset, StyleCategory, SystemSettings, SentenceBookmark, FigureCaption } from './types';
 import { INITIAL_NOTEBOOKS, INITIAL_NODES, INITIAL_TAGS, INITIAL_TAB_FOLDERS, INITIAL_SENTENCE_BOOKMARKS } from './data/initialData';
@@ -35,7 +36,7 @@ import { DocxImportModal } from './components/DocxImportModal';
 import { SystemOptionsModal } from './components/SystemOptionsModal';
 import { ErrorLogModal } from './components/ErrorLogModal';
 import { ErrorToast } from './components/ErrorToast';
-import { logSuccess, logInfo } from './utils/errorLog';
+import { logSuccess, logInfo, logError } from './utils/errorLog';
 import { DocxImportPreviewResult, convertPreviewToAppNodes } from './utils/docxImporter';
 import { createFootnoteHtml, renumberFootnotes } from './utils/footnoteUtils';
 import { createTextboxHtml, TEXTBOX_PRESETS } from './utils/textboxUtils';
@@ -64,58 +65,11 @@ const INITIAL_DEMO_DB: DatabaseProfile = {
   activeNodeId: 'rec-vegetable',
 };
 
-export default function App() {
+function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabases: DatabaseProfile[], initialActiveDatabaseId: string }) {
   // Multi-Database Management State
-  const [databases, setDatabases] = useState<DatabaseProfile[]>(() => {
-    const saved = localStorage.getItem('hierarchical_databases');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      } catch (e) {
-        console.error('Failed to parse databases from localStorage', e);
-      }
-    }
+  const [databases, setDatabases] = useState<DatabaseProfile[]>(initialDatabases);
 
-    // Fallback: If legacy single-database localStorage exists, preserve it as DEMO or initial DB
-    const legacyNotebooks = localStorage.getItem('hierarchical_notebooks');
-    const legacyNodes = localStorage.getItem('hierarchical_nodes');
-    const legacyTags = localStorage.getItem('hierarchical_tags');
-
-    if (legacyNotebooks && legacyNodes) {
-      try {
-        const nbs = JSON.parse(legacyNotebooks);
-        const nds = JSON.parse(legacyNodes);
-        const tgs = legacyTags ? JSON.parse(legacyTags) : INITIAL_TAGS;
-        return [
-          {
-            id: 'demo',
-            name: 'DEMO（デモデータ）',
-            createdAt: '2026-08-24',
-            updatedAt: new Date().toISOString().split('T')[0],
-            isDemo: true,
-            tabFolders: INITIAL_TAB_FOLDERS,
-            notebooks: nbs,
-            nodes: nds,
-            tags: tgs,
-            sentenceBookmarks: INITIAL_SENTENCE_BOOKMARKS,
-            figureCaptions: [],
-            activeNotebookId: nbs[0]?.id || 'recipes',
-            activeNodeId: Object.keys(nds)[0] || 'rec-vegetable',
-          },
-        ];
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    return [INITIAL_DEMO_DB];
-  });
-
-  const [activeDatabaseId, setActiveDatabaseId] = useState<string>(() => {
-    const savedId = localStorage.getItem('hierarchical_active_db_id');
-    return savedId || databases[0]?.id || 'demo';
-  });
+  const [activeDatabaseId, setActiveDatabaseId] = useState<string>(initialActiveDatabaseId);
 
   // Current Active Database Object
   const currentDb = databases.find((d) => d.id === activeDatabaseId) || databases[0] || INITIAL_DEMO_DB;
@@ -217,7 +171,8 @@ export default function App() {
     };
 
     document.addEventListener('selectionchange', handleSelectionChange);
-    return () => {
+    
+  return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
     };
   }, []);
@@ -310,11 +265,11 @@ export default function App() {
         }
         return db;
       });
-      localStorage.setItem('hierarchical_databases', JSON.stringify(next));
+      localforage.setItem('hierarchical_databases', next);
       return next;
     });
 
-    localStorage.setItem('hierarchical_active_db_id', activeDatabaseId);
+    localforage.setItem('hierarchical_active_db_id', activeDatabaseId);
   }, [tabFolders, notebooks, nodes, tags, sentenceBookmarks, figureCaptions, activeNotebookId, activeNodeId, activeDatabaseId]);
 
   // Handle switching active database
@@ -509,7 +464,7 @@ export default function App() {
 
     setDatabases((prev) => {
       const next = [...prev, newDb];
-      localStorage.setItem('hierarchical_databases', JSON.stringify(next));
+      localforage.setItem('hierarchical_databases', next);
       return next;
     });
 
@@ -538,7 +493,7 @@ export default function App() {
             }
           : db
       );
-      localStorage.setItem('hierarchical_databases', JSON.stringify(next));
+      localforage.setItem('hierarchical_databases', next);
       return next;
     });
   };
@@ -547,7 +502,7 @@ export default function App() {
   const handleRenameDatabase = (dbId: string, newName: string) => {
     setDatabases((prev) => {
       const next = prev.map((db) => (db.id === dbId ? { ...db, name: newName } : db));
-      localStorage.setItem('hierarchical_databases', JSON.stringify(next));
+      localforage.setItem('hierarchical_databases', next);
       return next;
     });
   };
@@ -556,7 +511,7 @@ export default function App() {
   const handleDeleteDatabase = (dbId: string) => {
     setDatabases((prev) => {
       const next = prev.filter((db) => db.id !== dbId);
-      localStorage.setItem('hierarchical_databases', JSON.stringify(next));
+      localforage.setItem('hierarchical_databases', next);
       if (activeDatabaseId === dbId) {
         const fallback = next[0] || INITIAL_DEMO_DB;
         setActiveDatabaseId(fallback.id);
@@ -591,7 +546,7 @@ export default function App() {
     setDatabases((prev) => {
       const exists = prev.some((d) => d.id === 'demo');
       const next = exists ? prev.map((d) => (d.id === 'demo' ? demoDb : d)) : [demoDb, ...prev];
-      localStorage.setItem('hierarchical_databases', JSON.stringify(next));
+      localforage.setItem('hierarchical_databases', next);
       return next;
     });
 
@@ -2353,15 +2308,55 @@ export default function App() {
     a.click();
   };
 
-  const handleResetSampleData = () => {
-    if (window.confirm('すべてのノート、フォルダ、タグデータを初期サンプル状態にリセットしますか？')) {
-      setNotebooks(INITIAL_NOTEBOOKS);
-      setNodes(INITIAL_NODES);
-      setTags(INITIAL_TAGS);
-      setActiveNotebookId('recipes');
-      setActiveNodeId('rec-vegetable');
-      localStorage.clear();
-    }
+  const handleImportDatabase = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.notebooks && data.nodes) {
+          const newDb: DatabaseProfile = {
+            id: `db-${Date.now()}`,
+            name: file.name.replace(/\.[^/.]+$/, "") || 'インポートされたDB',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            isDemo: false,
+            storageLocation: 'ブラウザ内蔵セキュア領域 (IndexedDB / LocalStorage)',
+            storageType: 'browser_storage',
+            notebooks: data.notebooks,
+            nodes: data.nodes,
+            tags: data.tags || [],
+            sentenceBookmarks: data.sentenceBookmarks || [],
+            figureCaptions: data.figureCaptions || [],
+            activeNotebookId: data.notebooks[0]?.id || '',
+            activeNodeId: Object.keys(data.nodes)[0] || '',
+          };
+          setDatabases(prev => {
+            const next = [...prev, newDb];
+            localforage.setItem('hierarchical_databases', next);
+            return next;
+          });
+          // Switch to the newly imported DB immediately
+          setActiveDatabaseId(newDb.id);
+          setNotebooks(newDb.notebooks);
+          setNodes(newDb.nodes);
+          setTags(newDb.tags || []);
+          setSentenceBookmarks(newDb.sentenceBookmarks || []);
+          setFigureCaptions(newDb.figureCaptions || []);
+          setActiveNotebookId(newDb.activeNotebookId || '');
+          setActiveNodeId(newDb.activeNodeId || '');
+          setSelectedTagFilter(null);
+          
+          logSuccess('system', `データベース「${newDb.name}」をインポートしました。`);
+          setIsDbManagerOpen(false); // Close modal if open
+        } else {
+          logError('system', '不正な形式のファイルです。', new Error('Invalid file format'));
+        }
+      } catch (error) {
+        console.error(error);
+        logError('system', 'ファイルの読み込みに失敗しました。', error as Error);
+      }
+    };
+    reader.readAsText(file);
   };
 
   const handleAddNotebook = (name: string, color: string, folderId?: string | null) => {
@@ -2487,6 +2482,59 @@ export default function App() {
   }, [activeNodeId, nodes, rootNodeIds, activeNotebookId, copiedFormat, isFormatPainterActive]);
 
   const totalBookmarkedCount = (Object.values(nodes) as TreeNode[]).filter((n) => n.isBookmarked).length;
+
+
+  const handleExportAllDatabases = () => {
+    const backupData = {
+      version: '1.0',
+      type: 'hierarchical_notes_full_backup',
+      databases: databases
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hierarchical_notes_FULL_BACKUP_${Date.now()}.json`;
+    a.click();
+  };
+
+  const handleImportAllDatabases = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target?.result as string);
+        if (data.type === 'hierarchical_notes_full_backup' && Array.isArray(data.databases)) {
+          if (confirm('既存のすべてのデータベースが上書き（または結合）されます。続行しますか？\n※「キャンセル」で既存のデータは保持されますが、今回は完全に上書きする形で移行します。')) {
+            setDatabases(data.databases);
+            localforage.setItem('hierarchical_databases', data.databases);
+            const fallbackId = data.databases[0]?.id || 'demo';
+            setActiveDatabaseId(fallbackId);
+            localforage.setItem('hierarchical_active_db_id', fallbackId);
+            
+            // Re-sync states for the active DB
+            const fallbackDb = data.databases[0];
+            if (fallbackDb) {
+              setNotebooks(fallbackDb.notebooks || []);
+              setNodes(fallbackDb.nodes || {});
+              setTags(fallbackDb.tags || []);
+              setSentenceBookmarks(fallbackDb.sentenceBookmarks || []);
+              setFigureCaptions(fallbackDb.figureCaptions || []);
+              setActiveNotebookId(fallbackDb.activeNotebookId || '');
+              setActiveNodeId(fallbackDb.activeNodeId || '');
+            }
+            
+            alert('全環境のデータ移行（インポート）が完了しました。');
+          }
+        } else {
+          alert('正しいフルバックアップファイルではありません。');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('ファイルの読み込みに失敗しました。');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <div id="hierarchical-app-root" className="h-screen w-screen flex flex-col overflow-hidden bg-slate-200 font-sans text-slate-900">
@@ -2795,6 +2843,9 @@ export default function App() {
         onUpdateStorageLocation={handleUpdateStorageLocation}
         onDeleteDatabase={handleDeleteDatabase}
         onResetDemoDatabase={handleResetDemoDatabase}
+        onImportDatabase={handleImportDatabase}
+        onExportAllDatabases={handleExportAllDatabases}
+        onImportAllDatabases={handleImportAllDatabases}
       />
 
       {/* Wikipedia-Style Footnote Insertion Modal */}
@@ -2879,4 +2930,93 @@ export default function App() {
       />
     </div>
   );
+}
+
+export default function App() {
+  const [isDbReady, setIsDbReady] = useState(false);
+  const [initialDatabases, setInitialDatabases] = useState<DatabaseProfile[]>([]);
+  const [initialActiveDatabaseId, setInitialActiveDatabaseId] = useState<string>('');
+
+  useEffect(() => {
+    async function loadDb() {
+      try {
+        let dbs = [INITIAL_DEMO_DB];
+        let activeId = 'demo';
+
+        // 1. Try localforage (IndexedDB)
+        const savedDbs = await localforage.getItem<DatabaseProfile[]>('hierarchical_databases');
+        if (savedDbs && Array.isArray(savedDbs) && savedDbs.length > 0) {
+          dbs = savedDbs;
+          activeId = (await localforage.getItem<string>('hierarchical_active_db_id')) || dbs[0].id;
+        } else {
+          // 2. Fallback to localStorage
+          const legacySaved = localStorage.getItem('hierarchical_databases');
+          if (legacySaved) {
+            try {
+              const parsed = JSON.parse(legacySaved);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                dbs = parsed;
+                activeId = localStorage.getItem('hierarchical_active_db_id') || dbs[0].id;
+                // Migrate to localforage
+                await localforage.setItem('hierarchical_databases', dbs);
+                await localforage.setItem('hierarchical_active_db_id', activeId);
+              }
+            } catch(e) {}
+          } else {
+            // 3. Fallback to legacy single db
+            const legacyNotebooks = localStorage.getItem('hierarchical_notebooks');
+            const legacyNodes = localStorage.getItem('hierarchical_nodes');
+            const legacyTags = localStorage.getItem('hierarchical_tags');
+            
+            if (legacyNotebooks && legacyNodes) {
+              try {
+                const nbs = JSON.parse(legacyNotebooks);
+                const nds = JSON.parse(legacyNodes);
+                const tgs = legacyTags ? JSON.parse(legacyTags) : INITIAL_TAGS;
+                dbs = [{
+                  id: 'demo',
+                  name: 'DEMO（移行データ）',
+                  createdAt: '2026-08-24',
+                  updatedAt: new Date().toISOString().split('T')[0],
+                  isDemo: true,
+                  tabFolders: INITIAL_TAB_FOLDERS,
+                  notebooks: nbs,
+                  nodes: nds,
+                  tags: tgs,
+                  sentenceBookmarks: INITIAL_SENTENCE_BOOKMARKS,
+                  figureCaptions: [],
+                  activeNotebookId: nbs[0]?.id || 'recipes',
+                  activeNodeId: Object.keys(nds)[0] || 'rec-vegetable',
+                }];
+                activeId = 'demo';
+                await localforage.setItem('hierarchical_databases', dbs);
+                await localforage.setItem('hierarchical_active_db_id', activeId);
+              } catch(e) {}
+            }
+          }
+        }
+        
+        setInitialDatabases(dbs);
+        setInitialActiveDatabaseId(activeId);
+        setIsDbReady(true);
+      } catch (e) {
+        console.error("Database load error:", e);
+        setInitialDatabases([INITIAL_DEMO_DB]);
+        setInitialActiveDatabaseId('demo');
+        setIsDbReady(true);
+      }
+    }
+    loadDb();
+  }, []);
+
+  if (!isDbReady) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50 text-slate-500 flex-col space-y-4">
+        <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <p className="font-semibold text-sm">データベースを読み込み中...</p>
+      </div>
+    );
+  }
+
+  return <MainApp initialDatabases={initialDatabases} initialActiveDatabaseId={initialActiveDatabaseId} />;
 }

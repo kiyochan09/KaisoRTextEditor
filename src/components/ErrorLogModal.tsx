@@ -22,6 +22,7 @@ export const ErrorLogModal: React.FC<ErrorLogModalProps> = ({
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
   const [testStatus, setTestStatus] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -60,9 +61,8 @@ export const ErrorLogModal: React.FC<ErrorLogModalProps> = ({
   };
 
   const handleClearLogs = () => {
-    if (window.confirm('すべてのエラーログ・動作ログをクリアしますか？')) {
-      logger.clearLogs();
-    }
+    logger.clearLogs();
+    setShowClearConfirm(false);
   };
 
   const handleRunDiagnostic = () => {
@@ -224,14 +224,37 @@ export const ErrorLogModal: React.FC<ErrorLogModalProps> = ({
                 </>
               )}
             </button>
-            <button
-              onClick={handleClearLogs}
-              className="inline-flex items-center space-x-1 px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 rounded border border-slate-300 hover:border-red-300 font-medium text-xs shadow-2xs transition"
-              title="ログを全消去"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>クリア</span>
-            </button>
+            <div className="relative inline-block">
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="inline-flex items-center space-x-1 px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 rounded border border-slate-300 hover:border-red-300 font-medium text-xs shadow-2xs transition"
+                title="ログを全消去"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>クリア</span>
+              </button>
+              {showClearConfirm && (
+                <div className="absolute bottom-full right-0 mb-2 p-3 bg-white border border-red-200 shadow-xl rounded-lg z-20 w-56 animate-in fade-in zoom-in-95">
+                  <p className="text-xs font-bold text-slate-800 mb-2 leading-relaxed">
+                    すべてのログをクリアしますか？
+                  </p>
+                  <div className="flex space-x-2 justify-end">
+                    <button
+                      onClick={() => setShowClearConfirm(false)}
+                      className="px-2 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded-md transition"
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={handleClearLogs}
+                      className="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 text-white rounded-md transition shadow-sm font-medium"
+                    >
+                      クリアする
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
