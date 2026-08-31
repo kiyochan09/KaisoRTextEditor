@@ -304,7 +304,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
               ? 'bg-blue-100/90 border-blue-500 ring-2 ring-blue-400 text-blue-950 font-bold shadow-xs' 
               : isSelected 
                 ? 'bg-blue-100/90 text-blue-950 font-medium border-blue-300 shadow-2xs' 
-                : 'text-slate-700 border-transparent hover:bg-slate-200/80'
+                : 'text-slate-700 border-transparent hover:bg-[#f3efe6]/80'
           }`}
           title="ドラッグして他のフォルダ・ノートの上/中/下に移動可能"
         >
@@ -468,9 +468,9 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
   const bookmarkedCount = (Object.values(nodes) as TreeNode[]).filter((n) => n.isBookmarked).length;
 
   return (
-    <div id="tree-sidebar" className="w-72 bg-slate-100 border-r border-slate-300 flex flex-col shrink-0 select-none">
+    <div id="tree-sidebar" className="w-72 bg-[#fbf9f6] border-r border-slate-300 flex flex-col shrink-0 select-none">
       {/* Tree header toolbar */}
-      <div className="p-2 bg-slate-200 border-b border-slate-300 flex flex-col space-y-1.5">
+      <div className="p-2 bg-[#f3efe6] border-b border-slate-300 flex flex-col space-y-1.5">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-1">
             <Folder className="w-3.5 h-3.5 text-blue-600" />
@@ -480,14 +480,14 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
             <button
               onClick={() => setExpandedNodeIds(new Set(Object.keys(nodes)))}
               title="すべての階層を展開"
-              className="px-1.5 py-0.5 text-[10px] bg-white hover:bg-slate-50 text-slate-700 rounded border border-slate-300 shadow-2xs"
+              className="px-1.5 py-0.5 text-[10px] bg-white hover:bg-[#fdfcfb] text-slate-700 rounded border border-slate-300 shadow-2xs"
             >
               全展開
             </button>
             <button
               onClick={() => setExpandedNodeIds(new Set())}
               title="すべての階層を折りたたむ"
-              className="px-1.5 py-0.5 text-[10px] bg-white hover:bg-slate-50 text-slate-700 rounded border border-slate-300 shadow-2xs"
+              className="px-1.5 py-0.5 text-[10px] bg-white hover:bg-[#fdfcfb] text-slate-700 rounded border border-slate-300 shadow-2xs"
             >
               全折畳
             </button>
@@ -549,7 +549,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
                   <button
                     onClick={() => onReorderNode(activeNode.id, 'up')}
                     title="上へ並び替え (Alt+Up)"
-                    className="p-1 hover:bg-slate-100 text-slate-700 rounded border border-slate-200 transition"
+                    className="p-1 hover:bg-[#fbf9f6] text-slate-700 rounded border border-slate-200 transition"
                   >
                     <ArrowUp className="w-3 h-3" />
                   </button>
@@ -559,7 +559,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
                   <button
                     onClick={() => onReorderNode(activeNode.id, 'down')}
                     title="下へ並び替え (Alt+Down)"
-                    className="p-1 hover:bg-slate-100 text-slate-700 rounded border border-slate-200 transition"
+                    className="p-1 hover:bg-[#fbf9f6] text-slate-700 rounded border border-slate-200 transition"
                   >
                     <ArrowDown className="w-3 h-3" />
                   </button>
@@ -654,7 +654,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
             className={`mt-3 p-2.5 border-2 border-dashed rounded-lg text-center text-xs transition-all ${
               isOverRootDropZone
                 ? 'border-blue-500 bg-blue-100 text-blue-900 font-bold scale-[1.02]'
-                : 'border-slate-300 bg-slate-50 text-slate-600 hover:border-slate-400'
+                : 'border-slate-300 bg-[#fdfcfb] text-slate-600 hover:border-slate-400'
             }`}
           >
             📂 ここにドロップするとルート（最上位）階層へ移動
@@ -663,10 +663,10 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
       </div>
 
       {/* Bottom quick actions */}
-      <div className="p-2 border-t border-slate-300 bg-slate-200 flex items-center space-x-1.5">
+      <div className="p-2 border-t border-slate-300 bg-[#f3efe6] flex items-center space-x-1.5">
         <button
           onClick={() => onAddChildNode(null)}
-          className="flex-1 flex items-center justify-center space-x-1 bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 px-2 py-1.5 rounded text-xs shadow-2xs font-medium transition"
+          className="flex-1 flex items-center justify-center space-x-1 bg-white hover:bg-[#fdfcfb] border border-slate-300 text-slate-800 px-2 py-1.5 rounded text-xs shadow-2xs font-medium transition"
         >
           <Plus className="w-3.5 h-3.5 text-emerald-600" />
           <span>+ ノート作成</span>

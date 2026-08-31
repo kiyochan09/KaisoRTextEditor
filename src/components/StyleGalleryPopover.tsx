@@ -3,7 +3,7 @@ import { TextStylePreset, StyleCategory } from '../types';
 import { 
   Sparkles, Plus, Eraser, Edit3, Trash2, X, Check, 
   Settings, Type, AlignLeft, ChevronRight 
-} from 'lucide-react';
+, Eye, EyeOff } from 'lucide-react';
 
 interface StyleGalleryPopoverProps {
   characterStyles: TextStylePreset[];
@@ -14,6 +14,7 @@ interface StyleGalleryPopoverProps {
   onCreateNewStyle: (category: StyleCategory) => void;
   onEditStyle: (style: TextStylePreset) => void;
   onDeleteStyle: (styleId: string) => void;
+  onToggleHideStyle?: (styleId: string) => void;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | null>;
   savedRange?: Range | null;
@@ -28,6 +29,7 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
   onCreateNewStyle,
   onEditStyle,
   onDeleteStyle,
+  onToggleHideStyle,
   onClose,
   triggerRef,
   savedRange,
@@ -35,6 +37,7 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'character' | 'paragraph'>('all');
   const [hoveredStyleId, setHoveredStyleId] = useState<string | null>(null);
+  const [showHidden, setShowHidden] = useState<boolean>(false);
 
   // Close when clicking outside or pressing Escape
   useEffect(() => {
@@ -92,12 +95,13 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
   };
 
   // Filter displayed styles based on active tab
-  const displayedStyles: TextStylePreset[] = 
+  const baseStyles: TextStylePreset[] = 
     activeTab === 'all'
       ? [...characterStyles, ...paragraphStyles]
       : activeTab === 'character'
       ? characterStyles
       : paragraphStyles;
+  const displayedStyles = baseStyles.filter(s => showHidden || !s.isHidden);
 
   // Render preview sample text with style
   const renderSampleContent = (style: TextStylePreset) => {
@@ -141,6 +145,16 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
       {/* Top Header with Tabs */}
       <div className="bg-slate-100/90 px-3 pt-2.5 pb-2 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center space-x-1">
+          <button
+            onClick={() => setShowHidden(!showHidden)}
+            className={`px-2 py-1 rounded text-[10px] font-medium transition ${
+              showHidden ? 'bg-slate-200 text-slate-700' : 'text-slate-500 hover:bg-slate-200'
+            }`}
+            title={showHidden ? "非表示スタイルを隠す" : "非表示スタイルも表示"}
+          >
+            {showHidden ? <EyeOff className="w-3 h-3 inline mr-1"/> : <Eye className="w-3 h-3 inline mr-1"/>}
+            非表示
+          </button>
           <button
             type="button"
             onClick={() => setActiveTab('all')}
@@ -241,6 +255,24 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
                     >
                       <Edit3 className="w-3 h-3" />
                     </button>
+                    {style.isBuiltin && onToggleHideStyle && (
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleHideStyle(style.id);
+                        }}
+                        title={style.isHidden ? "このスタイルを表示" : "このスタイルを非表示"}
+                        className={`p-0.5 rounded transition cursor-pointer ${
+                          style.isHidden
+                            ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                            : 'hover:bg-amber-100 hover:text-amber-700 text-slate-600'
+                        }`}
+                      >
+                        {style.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                      </button>
+                    )}
                     {!style.isBuiltin && (
                       <button
                         type="button"

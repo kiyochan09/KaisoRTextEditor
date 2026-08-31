@@ -166,4 +166,5 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   lineHeight: '1.6',
   contentAlignment: 'center',
   pagePadding: 'normal',
+  showRuler: false,
 };

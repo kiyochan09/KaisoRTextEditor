@@ -152,7 +152,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
               ? 'bg-blue-100 border-blue-500 ring-2 ring-blue-400 font-bold'
               : isActive
                 ? 'bg-blue-600 text-white font-semibold border-blue-700 shadow-xs'
-                : 'text-slate-700 hover:bg-slate-200 border-transparent'
+                : 'text-slate-700 hover:bg-[#f3efe6] border-transparent'
           }`}
           title={`${folder.name} (クリックしてこのフォルダのタブ一覧を表示)`}
         >
@@ -216,7 +216,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
             {tabsInThisFolder.length > 0 && (
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono transition ${
-                  isActive ? 'bg-blue-800 text-blue-100' : 'bg-slate-200 text-slate-600'
+                  isActive ? 'bg-blue-800 text-blue-100' : 'bg-[#f3efe6] text-slate-600'
                 }`}
                 title={`${tabsInThisFolder.length} 個のタブ`}
               >
@@ -311,7 +311,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                   className={`group relative flex items-center justify-between py-1 pr-2 rounded text-xs transition cursor-pointer ${
                     isTabActive
                       ? 'bg-blue-100 text-blue-950 font-semibold border border-blue-300'
-                      : 'text-slate-700 hover:bg-slate-200 border border-transparent'
+                      : 'text-slate-700 hover:bg-[#f3efe6] border border-transparent'
                   }`}
                   title={`タブ: ${tab.name} (クリックして開く)`}
                 >
@@ -353,9 +353,9 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
   );
 
   return (
-    <div id="tab-list-hierarchy-panel" className="w-60 bg-slate-100 border-r border-slate-300 flex flex-col text-xs shrink-0 select-none">
+    <div id="tab-list-hierarchy-panel" className="w-60 bg-[#fbf9f6] border-r border-slate-300 flex flex-col text-xs shrink-0 select-none">
       {/* Header */}
-      <div className="p-2 bg-slate-200 border-b border-slate-300 flex flex-col space-y-1.5">
+      <div className="p-2 bg-[#f3efe6] border-b border-slate-300 flex flex-col space-y-1.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1.5 font-bold text-slate-800">
             <Layers className="w-4 h-4 text-blue-600" />
@@ -371,7 +371,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
           <button
             type="button"
             onClick={() => onCreateFolder(null, '新規フォルダ')}
-            className="flex-1 px-2 py-1 bg-white hover:bg-slate-50 text-slate-800 rounded border border-slate-300 font-medium text-[11px] flex items-center justify-center space-x-1 shadow-2xs transition hover:border-slate-400 cursor-pointer"
+            className="flex-1 px-2 py-1 bg-white hover:bg-[#fdfcfb] text-slate-800 rounded border border-slate-300 font-medium text-[11px] flex items-center justify-center space-x-1 shadow-2xs transition hover:border-slate-400 cursor-pointer"
             title="ルート階層に新しいタブフォルダを作成"
           >
             <FolderPlus className="w-3 h-3 text-amber-600" />
@@ -388,7 +388,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                 onCreateFolder(null, '新規サブフォルダ');
               }
             }}
-            className="flex-1 px-2 py-1 bg-white hover:bg-slate-50 text-slate-800 rounded border border-slate-300 font-medium text-[11px] flex items-center justify-center space-x-1 shadow-2xs transition hover:border-slate-400 cursor-pointer"
+            className="flex-1 px-2 py-1 bg-white hover:bg-[#fdfcfb] text-slate-800 rounded border border-slate-300 font-medium text-[11px] flex items-center justify-center space-x-1 shadow-2xs transition hover:border-slate-400 cursor-pointer"
             title={activeFolderId ? `「${tabFolders.find((f) => f.id === activeFolderId)?.name || '選択中'}」内にサブフォルダを追加 (階層化)` : 'サブフォルダを追加'}
           >
             <Plus className="w-3 h-3 text-blue-600" />
@@ -398,7 +398,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
       </div>
 
       {/* Root All Tabs / Home Item */}
-      <div className="p-1.5 border-b border-slate-200 bg-slate-50/60">
+      <div className="p-1.5 border-b border-slate-200 bg-[#fdfcfb]/60">
         <button
           type="button"
           onClick={() => {
@@ -410,7 +410,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
           className={`w-full text-left px-2 py-1.5 rounded text-xs transition flex items-center justify-between cursor-pointer ${
             activeFolderId === null
               ? 'bg-blue-600 text-white font-semibold shadow-xs'
-              : 'text-slate-700 hover:bg-slate-200'
+              : 'text-slate-700 hover:bg-[#f3efe6]'
           }`}
           title="すべてのタブを表示"
         >
@@ -419,7 +419,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
             <span>すべてのタブ (全体表示)</span>
           </div>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-            activeFolderId === null ? 'bg-blue-800 text-blue-100' : 'bg-slate-200 text-slate-600'
+            activeFolderId === null ? 'bg-blue-800 text-blue-100' : 'bg-[#f3efe6] text-slate-600'
           }`}>
             {notebooks.length}
           </span>
@@ -473,7 +473,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                   className={`flex items-center justify-between py-1 px-2 rounded text-xs transition cursor-pointer ${
                     isTabActive
                       ? 'bg-blue-100 text-blue-950 font-semibold border border-blue-300'
-                      : 'text-slate-700 hover:bg-slate-200 border border-transparent'
+                      : 'text-slate-700 hover:bg-[#f3efe6] border border-transparent'
                   }`}
                 >
                   <div className="flex items-center space-x-1.5 truncate">
@@ -491,7 +491,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
       </div>
 
       {/* Footer Instructions */}
-      <div className="p-1.5 bg-slate-200 border-t border-slate-300 text-[10px] text-slate-500 text-center leading-tight">
+      <div className="p-1.5 bg-[#f3efe6] border-t border-slate-300 text-[10px] text-slate-500 text-center leading-tight">
         フォルダを選択すると上部にそのタブ群が表示されます
       </div>
     </div>

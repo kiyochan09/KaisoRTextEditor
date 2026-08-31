@@ -1,0 +1,300 @@
+import React, { useState, useEffect } from 'react';
+import { SystemSettings, BodyWrapMode } from '../types';
+import { 
+  FONT_FAMILY_PRESETS, 
+  FONT_SIZE_PRESETS, 
+  WRAP_MODE_OPTIONS, 
+  DEFAULT_SYSTEM_SETTINGS 
+} from '../data/initialSettings';
+import { 
+  Settings, Type, AlignLeft, AlignCenter, Sliders, Check, 
+  RotateCcw, X, Eye, Sparkles, BookOpen, Monitor, 
+  Columns, WrapText, ChevronRight, HelpCircle, Laptop, RefreshCw, Plus
+} from 'lucide-react';
+import { 
+  getAllAvailableFonts, 
+  queryPCLoaclFonts, 
+  addCustomFont, 
+  SystemFontInfo,
+  isLocalFontAccessSupported
+} from '../utils/fontManager';
+
+interface SystemOptionsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  settings: SystemSettings;
+  onSaveSettings: (newSettings: SystemSettings) => void;
+}
+
+export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
+  isOpen,
+  onClose,
+  settings,
+  onSaveSettings,
+}) => {
+  const [tempSettings, setTempSettings] = useState<SystemSettings>(settings);
+  const [activeTab, setActiveTab] = useState<'font' | 'wrap' | 'layout'>('font');
+  const [customFontInput, setCustomFontInput] = useState<string>('');
+  const [isCustomFont, setIsCustomFont] = useState<boolean>(false);
+  const [availableFonts, setAvailableFonts] = useState<SystemFontInfo[]>(() => getAllAvailableFonts());
+  const [isLoadingPCFonts, setIsLoadingPCFonts] = useState<boolean>(false);
+  const [pcScanMessage, setPcScanMessage] = useState<string>('');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Sync state when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setTempSettings(settings);
+      setAvailableFonts(getAllAvailableFonts());
+      const isPreset = FONT_FAMILY_PRESETS.some((f) => f.family === settings.fontFamily);
+      if (!isPreset) {
+        setIsCustomFont(true);
+        setCustomFontInput(settings.fontFamily);
+      } else {
+        setIsCustomFont(false);
+        setCustomFontInput('');
+      }
+    }
+  }, [isOpen, settings]);
+
+  const handleScanPCFonts = async () => {
+    setIsLoadingPCFonts(true);
+    setPcScanMessage('PCフォントを読み込み中...');
+    try {
+      const fonts = await queryPCLoaclFonts();
+      setAvailableFonts(getAllAvailableFonts());
+      setPcScanMessage(`PCローカルフォントを ${fonts.length} 件 読み込みました`);
+      setTimeout(() => setPcScanMessage(''), 4000);
+    } catch (err: any) {
+      setPcScanMessage('PCフォント読み込みに失敗しました');
+    } finally {
+      setIsLoadingPCFonts(false);
+    }
+  };
+
+  const handleAddCustomFont = () => {
+    if (!customFontInput.trim()) return;
+    addCustomFont(customFontInput.trim());
+    setAvailableFonts(getAllAvailableFonts());
+    handleFontSelect(customFontInput.trim());
+  };
+
+  if (!isOpen) return null;
+
+  const handleFontSelect = (family: string) => {
+    setIsCustomFont(false);
+    setTempSettings((prev) => ({ ...prev, fontFamily: family }));
+  };
+
+  const handleCustomFontChange = (val: string) => {
+    setCustomFontInput(val);
+    setTempSettings((prev) => ({ ...prev, fontFamily: val || DEFAULT_SYSTEM_SETTINGS.fontFamily }));
+  };
+
+  const handleFontSizeSelect = (size: string) => {
+    setTempSettings((prev) => ({ ...prev, fontSize: size }));
+  };
+
+  const handleWrapModeSelect = (mode: BodyWrapMode) => {
+    const wrapOption = WRAP_MODE_OPTIONS.find((o) => o.mode === mode);
+    const defaultVal = wrapOption?.defaultVal || (mode === 'characters' ? 80 : 800);
+    setTempSettings((prev) => ({
+      ...prev,
+      bodyWrapMode: mode,
+      bodyWrapValue: prev.bodyWrapMode === mode && prev.bodyWrapValue ? prev.bodyWrapValue : defaultVal,
+    }));
+  };
+
+  const handleWrapValueChange = (val: number) => {
+    setTempSettings((prev) => ({ ...prev, bodyWrapValue: val }));
+  };
+
+  const handleLineHeightSelect = (lh: string) => {
+    setTempSettings((prev) => ({ ...prev, lineHeight: lh }));
+  };
+
+  const handleAlignmentSelect = (align: 'left' | 'center') => {
+    setTempSettings((prev) => ({ ...prev, contentAlignment: align }));
+  };
+
+  const handleResetDefaults = () => {
+    setTempSettings(DEFAULT_SYSTEM_SETTINGS);
+    setIsCustomFont(false);
+    setCustomFontInput('');
+    setShowResetConfirm(false);
+  };
+
+  const handleSave = () => {
+    onSaveSettings(tempSettings);
+    onClose();
+  };
+
+  // Calculate live preview container styles based on tempSettings
+  const getPreviewWrapStyle = () => {
+    if (tempSettings.bodyWrapMode === 'characters') {
+      return {
+        maxWidth: `${tempSettings.bodyWrapValue}ch`,
+        margin: tempSettings.contentAlignment === 'left' ? '0' : '0 auto',
+        whiteSpace: 'normal' as const,
+      };
+    }
+    if (tempSettings.bodyWrapMode === 'pixels') {
+      return {
+        maxWidth: `${Math.min(tempSettings.bodyWrapValue, 750)}px`,
+        margin: tempSettings.contentAlignment === 'left' ? '0' : '0 auto',
+        whiteSpace: 'normal' as const,
+      };
+    }
+    if (tempSettings.bodyWrapMode === 'none') {
+      return {
+        maxWidth: 'none',
+        whiteSpace: 'pre' as const,
+        overflowX: 'auto' as const,
+      };
+    }
+    return {
+      maxWidth: '100%',
+      margin: '0',
+      whiteSpace: 'normal' as const,
+    };
+  };
+
+  const currentFontObj = FONT_FAMILY_PRESETS.find((f) => f.family === tempSettings.fontFamily);
+  const currentFontSizeObj = FONT_SIZE_PRESETS.find((s) => s.value === tempSettings.fontSize);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in select-none">
+      <div 
+        id="system-options-dialog"
+        className="bg-white rounded-xl shadow-2xl border border-slate-300 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden text-slate-800 animate-in zoom-in-95 duration-150"
+      >
+        {/* Header */}
+        <div className="px-6 py-4 bg-gradient-to-r from-slate-100 via-slate-50 to-blue-50 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-blue-600 text-white rounded-lg shadow-sm">
+              <Settings className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <span>システム設定・表示オプション (System Options)</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                ノートエディタ全体のフォント、基本文字サイズ、本文折り返し位置を設定します
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 p-1.5 rounded-lg transition"
+            title="閉じる (Esc)"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex items-center border-b border-slate-200 bg-slate-50 px-6 gap-2">
+          <button
+            id="tab-btn-font"
+            onClick={() => setActiveTab('font')}
+            className={`px-4 py-2.5 text-xs font-semibold flex items-center space-x-2 border-b-2 transition ${
+              activeTab === 'font'
+                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Type className="w-4 h-4" />
+            <span>フォント・文字サイズ</span>
+          </button>
+
+          <button
+            id="tab-btn-wrap"
+            onClick={() => setActiveTab('wrap')}
+            className={`px-4 py-2.5 text-xs font-semibold flex items-center space-x-2 border-b-2 transition ${
+              activeTab === 'wrap'
+                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <WrapText className="w-4 h-4" />
+            <span>本文の折り返し位置</span>
+          </button>
+
+          <button
+            id="tab-btn-layout"
+            onClick={() => setActiveTab('layout')}
+            className={`px-4 py-2.5 text-xs font-semibold flex items-center space-x-2 border-b-2 transition ${
+              activeTab === 'layout'
+                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs'
+                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <Sliders className="w-4 h-4" />
+            <span>行間・レイアウト配置</span>
+          </button>
+        </div>
+
+        {/* Modal Main Body (2-Column: Left Controls, Right Live Preview) */}
+        <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-slate-200">
+          
+          {/* Left Column: Form Controls (7 cols) */}
+          <div className="md:col-span-7 p-6 overflow-y-auto max-h-[56vh] space-y-6">
+            
+            {/* TAB 1: Font & Size */}
+            {activeTab === 'font' && (
+              <div className="space-y-6 animate-in fade-in">
+                {/* Font Family Selection */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <Type className="w-3.5 h-3.5 text-blue-600" />
+                      <span>既定フォント (Font Family)</span>
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={handleScanPCFonts}
+                        disabled={isLoadingPCFonts}
+                        title="PC端末にインストールされているフォントを読み込みます"
+                        className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded text-[11px] font-medium flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                      >
+                        {isLoadingPCFonts ? (
+                          <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
+                        ) : (
+                          <Laptop className="w-3 h-3 text-blue-600" />
+                        )}
+                        <span>PCフォントを読み込む</span>
+                      </button>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        現在: {currentFontObj ? currentFontObj.name : tempSettings.fontFamily}
+                      </span>
+                    </div>
+                  </div>
+
+                  {pcScanMessage && (
+                    <div className="mb-2 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-800 rounded text-[11px] animate-in fade-in flex items-center justify-between">
+                      <span>{pcScanMessage}</span>
+                      <span className="text-[10px] text-blue-600 font-mono">計 {availableFonts.length} フォント</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto p-1 border border-slate-200 rounded-lg bg-slate-50/50">
+                    {/* Default Presets first */}
+                    {FONT_FAMILY_PRESETS.map((preset) => {
+                      const isSelected = !isCustomFont && (tempSettings.fontFamily === preset.family || tempSettings.fontFamily === preset.name);
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => handleFontSelect(preset.family)}
+                          className={`p-2.5 text-left rounded-md border text-xs transition flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-blue-50/90 border-blue-500 text-blue-900 ring-2 ring-blue-400/40 shadow-xs'
+                              : 'bg-white border-slate-200 hover:border-slate-300 text-slate-800 hover:bg-slate-50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between w-full mb-1">
+                            <span className="font-semibold truncate">{preset.name}</span>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
+                          </div>
+                          <span 

@@ -1,4 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import fs from 'fs';
+
+let content = fs.readFileSync('src/components/NotebookTabBar.tsx', 'utf8');
+
+// Replace the breadcrumbs with "全タブリスト" dropdown
+const newCode = `import React, { useState, useRef, useEffect } from 'react';
 import { Notebook, TabFolder } from '../types';
 import { Plus, X, FolderOpen, ChevronRight, Layers, ChevronUp, MoreHorizontal, Check, List, Trash2, ArrowRightToLine, ArrowRightLeft } from 'lucide-react';
 
@@ -116,9 +121,9 @@ export const NotebookTabBar: React.FC<NotebookTabBarProps> = ({
                       onSelectNotebook(nb.id);
                       setShowAllTabsDropdown(false);
                     }}
-                    className={`w-full px-3 py-2 text-left text-xs flex items-center space-x-2 hover:bg-amber-50 transition ${
+                    className={\`w-full px-3 py-2 text-left text-xs flex items-center space-x-2 hover:bg-amber-50 transition \${
                       isActive ? 'bg-amber-50 font-bold text-amber-900' : 'text-slate-700'
-                    }`}
+                    }\`}
                   >
                     <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm border border-black/10" style={{ backgroundColor: nb.color || '#f1f5f9' }} />
                     <div className="flex flex-col flex-1 truncate">
@@ -146,17 +151,17 @@ export const NotebookTabBar: React.FC<NotebookTabBarProps> = ({
             return (
               <button
                 key={nb.id}
-                id={`notebook-tab-${nb.id}`}
+                id={\`notebook-tab-\${nb.id}\`}
                 onClick={() => onSelectNotebook(nb.id)}
                 onContextMenu={(e) => handleContextMenu(e, nb.id)}
                 style={{
                   backgroundColor: isActive ? '#ffffff' : nb.color || '#fdf8f0',
                 }}
-                className={`group relative px-4 py-1.5 text-xs font-semibold rounded-t-md transition-all duration-100 flex items-center space-x-2 border-t-2 border-l border-r shrink-0 cursor-pointer ${
+                className={\`group relative px-4 py-1.5 text-xs font-semibold rounded-t-md transition-all duration-100 flex items-center space-x-2 border-t-2 border-l border-r shrink-0 cursor-pointer \${
                   isActive
                     ? 'border-t-amber-500 border-l-slate-300 border-r-slate-300 text-slate-900 shadow-sm z-10 -mb-[2px] pb-2'
                     : 'border-t-slate-300 border-l-slate-300 border-r-slate-300 text-slate-700 hover:brightness-95 opacity-85'
-                }`}
+                }\`}
                 title={nb.description || nb.name}
               >
                 <span>{nb.name}</span>
@@ -277,3 +282,6 @@ export const NotebookTabBar: React.FC<NotebookTabBarProps> = ({
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/components/NotebookTabBar.tsx', newCode);

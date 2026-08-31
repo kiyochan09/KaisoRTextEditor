@@ -90,6 +90,7 @@ export interface TextStylePreset {
   borderLeft?: string;
   paddingLeft?: string;
   isBuiltin?: boolean;
+  isHidden?: boolean;
 }
 
 export interface TreeNode {
@@ -200,5 +201,6 @@ export interface SystemSettings {
   lineHeight: string;
   contentAlignment?: 'left' | 'center';
   pagePadding?: 'compact' | 'normal' | 'spacious';
+  showRuler?: boolean;
 }
 

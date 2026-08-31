@@ -193,83 +193,37 @@ export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center border-b border-slate-200 bg-slate-50 px-6 gap-2">
-          <button
-            id="tab-btn-font"
-            onClick={() => setActiveTab('font')}
-            className={`px-4 py-2.5 text-xs font-semibold flex items-center space-x-2 border-b-2 transition ${
-              activeTab === 'font'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Type className="w-4 h-4" />
-            <span>フォント・文字サイズ</span>
-          </button>
 
-          <button
-            id="tab-btn-wrap"
-            onClick={() => setActiveTab('wrap')}
-            className={`px-4 py-2.5 text-xs font-semibold flex items-center space-x-2 border-b-2 transition ${
-              activeTab === 'wrap'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <WrapText className="w-4 h-4" />
-            <span>本文の折り返し位置</span>
-          </button>
-
-          <button
-            id="tab-btn-layout"
-            onClick={() => setActiveTab('layout')}
-            className={`px-4 py-2.5 text-xs font-semibold flex items-center space-x-2 border-b-2 transition ${
-              activeTab === 'layout'
-                ? 'border-blue-600 text-blue-700 bg-white shadow-2xs'
-                : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Sliders className="w-4 h-4" />
-            <span>行間・レイアウト配置</span>
-          </button>
-        </div>
-
-        {/* Modal Main Body (2-Column: Left Controls, Right Live Preview) */}
         <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-12 divide-y md:divide-y-0 md:divide-x divide-slate-200">
-          
-          {/* Left Column: Form Controls (7 cols) */}
           <div className="md:col-span-7 p-6 overflow-y-auto max-h-[56vh] space-y-6">
-            
-            {/* TAB 1: Font & Size */}
-            {activeTab === 'font' && (
-              <div className="space-y-6 animate-in fade-in">
-                {/* Font Family Selection */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                      <Type className="w-3.5 h-3.5 text-blue-600" />
-                      <span>既定フォント (Font Family)</span>
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={handleScanPCFonts}
-                        disabled={isLoadingPCFonts}
-                        title="PC端末にインストールされているフォントを読み込みます"
-                        className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded text-[11px] font-medium flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
-                      >
-                        {isLoadingPCFonts ? (
-                          <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
-                        ) : (
-                          <Laptop className="w-3 h-3 text-blue-600" />
-                        )}
-                        <span>PCフォントを読み込む</span>
-                      </button>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        現在: {currentFontObj ? currentFontObj.name : tempSettings.fontFamily}
-                      </span>
-                    </div>
+            <div className="space-y-8 animate-in fade-in">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <Type className="w-3.5 h-3.5 text-blue-600" />
+                    <span>既定フォント (Font Family) - 選択フォント・サイズを基本表示に設定</span>
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={handleScanPCFonts}
+                      disabled={isLoadingPCFonts}
+                      title="PC端末にインストールされているフォントを読み込みます"
+                      className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-300 rounded text-[11px] font-medium flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isLoadingPCFonts ? (
+                        <RefreshCw className="w-3 h-3 animate-spin text-blue-600" />
+                      ) : (
+                        <Laptop className="w-3 h-3 text-blue-600" />
+                      )}
+                      <span>PCフォントを読み込む</span>
+                    </button>
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      現在: {currentFontObj ? currentFontObj.name : tempSettings.fontFamily}
+                    </span>
                   </div>
+                </div>
+        
 
                   {pcScanMessage && (
                     <div className="mb-2 px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-800 rounded text-[11px] animate-in fade-in flex items-center justify-between">
@@ -422,11 +376,9 @@ export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
                   </p>
                 </div>
               </div>
-            )}
 
             {/* TAB 2: Note Body Wrap Position */}
-            {activeTab === 'wrap' && (
-              <div className="space-y-6 animate-in fade-in">
+            <div className="space-y-8 animate-in fade-in mt-8 border-t border-slate-200 pt-8">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -559,11 +511,38 @@ export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
                   </div>
                 </div>
               </div>
-            )}
 
             {/* TAB 3: Line Height & Layout Alignment */}
-            {activeTab === 'layout' && (
-              <div className="space-y-6 animate-in fade-in">
+            <div className="space-y-8 animate-in fade-in mt-8 border-t border-slate-200 pt-8">
+                
+                {/* Ruler Toggle */}
+                <div>
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
+                    <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                    <span>ルーラーを表示する (Show Ruler)</span>
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center space-x-2 cursor-pointer p-2 rounded border hover:bg-slate-50 transition border-slate-200">
+                      <input
+                        type="radio"
+                        checked={tempSettings.showRuler === true}
+                        onChange={() => setTempSettings(prev => ({ ...prev, showRuler: true }))}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-xs text-slate-700 font-bold">表示する</span>
+                    </label>
+                    <label className="flex items-center space-x-2 cursor-pointer p-2 rounded border hover:bg-slate-50 transition border-slate-200">
+                      <input
+                        type="radio"
+                        checked={tempSettings.showRuler !== true}
+                        onChange={() => setTempSettings(prev => ({ ...prev, showRuler: false }))}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-xs text-slate-700">表示しない</span>
+                    </label>
+                  </div>
+                </div>
+
                 {/* Line Height */}
                 <div>
                   <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
@@ -671,9 +650,7 @@ export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
                   </div>
                 </div>
               </div>
-            )}
           </div>
-
           {/* Right Column: Dynamic Live Preview Box (5 cols) */}
           <div className="md:col-span-5 p-6 bg-slate-50/80 flex flex-col justify-between overflow-hidden">
             <div>

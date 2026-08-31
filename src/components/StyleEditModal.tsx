@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TextStylePreset, StyleCategory, SystemSettings } from '../types';
-import { X, Check, Eye, Type, AlignLeft, AlignCenter, AlignRight, AlignJustify, Laptop, RefreshCw, Plus } from 'lucide-react';
+import {  X, Check, Eye, Type, AlignLeft, AlignCenter, AlignRight, AlignJustify, Laptop, RefreshCw, Plus , Trash2 } from 'lucide-react';
 import { 
   getAllAvailableFonts, 
   queryPCLoaclFonts, 
@@ -15,6 +15,7 @@ interface StyleEditModalProps {
   defaultCategory?: StyleCategory;
   onSave: (style: TextStylePreset) => void;
   onClose: () => void;
+  onDeleteStyle?: (styleId: string) => void;
   settings?: SystemSettings;
 }
 
@@ -44,6 +45,7 @@ export const StyleEditModal: React.FC<StyleEditModalProps> = ({
   onSave,
   onClose,
   settings,
+  onDeleteStyle,
 }) => {
   const isEditing = Boolean(editingStyle);
 
@@ -678,7 +680,25 @@ export const StyleEditModal: React.FC<StyleEditModalProps> = ({
         </div>
 
         {/* Footer actions */}
-        <div className="px-5 py-3 bg-slate-100 border-t border-slate-200 flex items-center justify-end space-x-2">
+        <div className="px-5 py-3 bg-slate-100 border-t border-slate-200 flex items-center justify-between">
+          <div>
+            {isEditing && !editingStyle?.isBuiltin && onDeleteStyle && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('このスタイルを削除してもよろしいですか？')) {
+                    onDeleteStyle(editingStyle.id);
+                    onClose();
+                  }
+                }}
+                className="px-3 py-1.5 rounded text-xs font-medium text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 transition flex items-center space-x-1 cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>削除</span>
+              </button>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
           <button
             type="button"
             onClick={onClose}
@@ -697,6 +717,7 @@ export const StyleEditModal: React.FC<StyleEditModalProps> = ({
             <Check className="w-3.5 h-3.5" />
             <span>{isEditing ? '変更を保存' : 'スタイルを登録'}</span>
           </button>
+          </div>
         </div>
 
       </div>

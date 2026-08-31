@@ -113,7 +113,6 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   ]);
 
   const [showBirdEyeFolders, setShowBirdEyeFolders] = useState<boolean>(true);
-  const [showRuler, setShowRuler] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [activeCellCoord, setActiveCellCoord] = useState<string>('A2');
 
@@ -1731,6 +1730,11 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     setParagraphStyles((prev) => prev.filter((s) => s.id !== styleId));
   };
 
+  const handleToggleHideStyle = (styleId: string) => {
+    setCharacterStyles((prev) => prev.map(s => s.id === styleId ? { ...s, isHidden: !s.isHidden } : s));
+    setParagraphStyles((prev) => prev.map(s => s.id === styleId ? { ...s, isHidden: !s.isHidden } : s));
+  };
+
   const handleSaveStyle = (savedStyle: TextStylePreset) => {
     if (savedStyle.category === 'character') {
       setCharacterStyles((prev) => {
@@ -2537,7 +2541,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   };
 
   return (
-    <div id="hierarchical-app-root" className="h-screen w-screen flex flex-col overflow-hidden bg-slate-200 font-sans text-slate-900">
+    <div id="hierarchical-app-root" className="h-screen w-screen flex flex-col overflow-hidden bg-[#efebe4] font-sans text-slate-900">
       {/* 1. Top Windows/Desktop Menu Bar */}
       <TopMenuBar
         onNewNote={() => handleAddChildNode(null)}
@@ -2555,6 +2559,8 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
         databases={databases}
         activeDatabaseId={activeDatabaseId}
         activeDatabaseName={currentDb?.name || 'DEMO（デモデータ）'}
+        activeNoteType={activeNode?.type}
+        onChangeNoteType={(type) => activeNode && handleChangeNodeType(activeNode.id, type)}
         onSelectDatabase={handleSelectDatabase}
         onOpenCreateDatabase={() => setIsCreateDbOpen(true)}
         onOpenDatabaseManager={() => setIsDbManagerOpen(true)}
@@ -2642,7 +2648,6 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
           {activeNode && (
             <EditorToolbar
               noteType={activeNode.type}
-              onChangeNoteType={(type) => handleChangeNodeType(activeNode.id, type)}
               onApplyFormat={handleApplyFormat}
               onInsertImage={handleOpenInsertImage}
               onInsertTable={handleInsertTable}
@@ -2654,8 +2659,8 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
               onInsertTextbox={handleInsertTextbox}
               currentColorBadge={activeNode.colorBadge}
               onChangeColorBadge={(color) => handleChangeColorBadge(activeNode.id, color)}
-              showRuler={showRuler}
-              onToggleRuler={() => setShowRuler(!showRuler)}
+              showRuler={systemSettings.showRuler ?? false}
+              onToggleRuler={() => {}}
               isBookmarked={Boolean(activeNode.isBookmarked)}
               onToggleBookmark={() => handleToggleBookmark(activeNode.id)}
               onBookmarkSentence={handleBookmarkCurrentSentence}
@@ -2673,6 +2678,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
               onCreateNewStyle={handleCreateNewStyle}
               onEditStyle={handleEditStyle}
               onDeleteStyle={handleDeleteStyle}
+              onToggleHideStyle={handleToggleHideStyle}
               onOpenFind={handleOpenFind}
               onOpenReplace={handleOpenReplace}
               onOpenGlobalSearch={handleOpenGlobalSearch}
@@ -2700,7 +2706,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
           />
 
           {/* Desktop Margin Ruler Bar */}
-          {showRuler && activeNode?.type === 'rich' && <RulerBar />}
+          {systemSettings.showRuler && activeNode?.type === "rich" && <RulerBar />}
 
           {/* Dynamic Note Body Editor based on node type */}
           {activeNode ? (
@@ -2789,6 +2795,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
         onTagClick={(tag) => setSelectedTagFilter(tag)}
         onOpenErrorLog={() => setIsErrorLogOpen(true)}
         settings={systemSettings}
+        onDeleteStyle={handleDeleteStyle}
       />
 
       {/* Real-time Error Notification Toast */}

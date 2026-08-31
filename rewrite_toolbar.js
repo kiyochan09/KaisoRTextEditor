@@ -1,285 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { NoteType, TextStylePreset, StyleCategory, SystemSettings } from '../types';
-import { 
-  Bold, Italic, Underline, Strikethrough, AlignLeft, AlignCenter, 
-  AlignRight, AlignJustify, List, ListOrdered, CheckSquare, 
-  Indent, Outdent,
-  Table, Image, Link, MessageSquare, Undo, Redo, Palette, 
-  Highlighter, Sparkles, FileText, Code, Bookmark, Lock, Shield,
-  BookOpen, Star, Paintbrush, Eraser, SquarePen, ChevronDown, 
-  Columns, Rows, CornerDownRight, Type, SlidersHorizontal,
-  Search, Replace, Globe, Settings, WrapText, Laptop, RefreshCw,
-  Plus, Check, Pin, Quote, Captions
-} from 'lucide-react';
-import { TEXTBOX_PRESETS } from '../utils/textboxUtils';
+import fs from 'fs';
 
-import { ColorPickerPopover } from './ColorPickerPopover';
-import { StyleGalleryPopover } from './StyleGalleryPopover';
-import { FONT_FAMILY_PRESETS } from '../data/initialSettings';
-import { 
-  getAllAvailableFonts, 
-  queryPCLoaclFonts, 
-  detectCaretTypography, 
-  addCustomFont, 
-  SystemFontInfo, 
-  CaretTypography,
-  getFriendlyFontName
-} from '../utils/fontManager';
+let content = fs.readFileSync('./src/components/EditorToolbar.tsx', 'utf8');
 
-interface EditorToolbarProps {
-  noteType: NoteType;
-  onApplyFormat: (command: string, value?: string) => void;
-  onInsertImage: () => void;
-  onInsertTable: () => void;
-  onInsertCallout: () => void;
-  onInsertLink: () => void;
-  onInsertFootnote?: () => void;
-  onInsertFigureCaption?: () => void;
-  onInsertBookmarkCard?: () => void;
-  onInsertTextbox?: (orientation: 'horizontal' | 'vertical', presetId?: string) => void;
-  currentColorBadge?: string;
-  onChangeColorBadge: (color?: string) => void;
-  showRuler: boolean;
-  onToggleRuler: () => void;
-  isBookmarked?: boolean;
-  onToggleBookmark?: () => void;
-  onBookmarkSentence?: () => void;
-  sentenceBookmarksCount?: number;
-  // Format Painter props
-  onCopyFormat?: () => void;
-  onPasteFormat?: () => void;
-  onClearFormat?: () => void;
-  isFormatPainterActive?: boolean;
-  hasCopiedFormat?: boolean;
-  copiedFormatSummary?: string;
-  // Style Presets (文字・段落書式メニュー)
-  characterStyles?: TextStylePreset[];
-  paragraphStyles?: TextStylePreset[];
-  activeStyleId?: string | null;
-  onApplyStyle?: (style: TextStylePreset) => void;
-  onCreateNewStyle?: (category: StyleCategory) => void;
-  onEditStyle?: (style: TextStylePreset) => void;
-  onDeleteStyle?: (styleId: string) => void;
-  onToggleHideStyle?: (styleId: string) => void;
-  // Search & Replace props (検索・置換・全体検索)
-  onOpenFind?: () => void;
-  onOpenReplace?: () => void;
-  onOpenGlobalSearch?: () => void;
-  // Global Settings props
-  settings?: SystemSettings;
-  onOpenOptions?: () => void;
-  onSetDefaultTypography?: (fontFamily: string, fontSize: string) => void;
+// Find the start of the return statement
+const returnStart = content.indexOf('  return (\n    <div id="editor-toolbar"');
+
+if (returnStart === -1) {
+  console.error("Could not find return statement");
+  process.exit(1);
 }
 
+// Read up to return statement
+const beforeReturn = content.substring(0, returnStart);
 
-const NODE_COLOR_BADGES = [
-  { name: 'ブルー (標準)', color: '#60a5fa' },
-  { name: 'オレンジ', color: '#fb923c' },
-  { name: 'パープル', color: '#c084fc' },
-  { name: 'イエロー', color: '#fde047' },
-  { name: 'グリーン', color: '#86efac' },
-  { name: 'シアン', color: '#67e8f9' },
-  { name: 'ピンク', color: '#f472b6' },
-  { name: 'レッド', color: '#ef4444' },
-];
-
-export const EditorToolbar: React.FC<EditorToolbarProps> = ({
-  noteType,
-  onApplyFormat,
-  onInsertImage,
-  onInsertTable,
-  onInsertCallout,
-  onInsertLink,
-  onInsertFootnote,
-  onInsertFigureCaption,
-  onInsertBookmarkCard,
-  onInsertTextbox,
-  currentColorBadge,
-  onChangeColorBadge,
-  showRuler,
-  onToggleRuler,
-  isBookmarked,
-  onToggleBookmark,
-  onBookmarkSentence,
-  sentenceBookmarksCount = 0,
-  onCopyFormat,
-  onPasteFormat,
-  onClearFormat,
-  isFormatPainterActive = false,
-  hasCopiedFormat = false,
-  copiedFormatSummary = '',
-  characterStyles = [],
-  paragraphStyles = [],
-  activeStyleId = null,
-  onApplyStyle,
-  onCreateNewStyle,
-  onEditStyle,
-  onDeleteStyle,
-  onToggleHideStyle,
-  onOpenFind,
-  onOpenReplace,
-  onOpenGlobalSearch,
-  settings,
-  onOpenOptions,
-  onSetDefaultTypography,
-}) => {
-  // Default font and size from user settings
-  const defaultFontFamily = settings?.fontFamily || 'Meiryo';
-  const defaultFontSize = settings?.fontSize || '10.5pt';
-
-  const [fontFamily, setFontFamily] = useState<string>(defaultFontFamily);
-  const [fontSize, setFontSize] = useState<string>(defaultFontSize);
-  const [showColorBadgeMenu, setShowColorBadgeMenu] = useState(false);
-  const colorBadgeMenuRef = useRef<HTMLDivElement>(null);
-  const [availableFonts, setAvailableFonts] = useState<SystemFontInfo[]>(() => getAllAvailableFonts());
-  const [isLoadingPCFonts, setIsLoadingPCFonts] = useState<boolean>(false);
-  const [showCustomFontPrompt, setShowCustomFontPrompt] = useState<boolean>(false);
-  const [customFontInput, setCustomFontInput] = useState<string>('');
-  const [statusToast, setStatusToast] = useState<string>('');
-
-  // Real-time Caret Typography Detection
-  const [caretInfo, setCaretInfo] = useState<CaretTypography>(() => 
-    detectCaretTypography(defaultFontFamily, defaultFontSize)
-  );
-
-  const [textColor, setTextColor] = useState('#0f172a');
-  const [highlightColor, setHighlightColor] = useState('#fef08a');
-  const [showTextColorPicker, setShowTextColorPicker] = useState(false);
-  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
-  const [showStyleGallery, setShowStyleGallery] = useState(false);
-  const [showBadgePicker, setShowBadgePicker] = useState(false);
-  const [showTextboxMenu, setShowTextboxMenu] = useState(false);
-  const [savedRange, setSavedRange] = useState<Range | null>(null);
-
-  const styleGalleryBtnRef = useRef<HTMLButtonElement>(null);
-  const textColorBtnRef = useRef<HTMLButtonElement>(null);
-  const highlightBtnRef = useRef<HTMLButtonElement>(null);
-  const textboxMenuRef = useRef<HTMLDivElement>(null);
-
-  // Sync with user specified base settings when changed
-  useEffect(() => {
-    if (settings) {
-      if (settings.fontFamily) setFontFamily(settings.fontFamily);
-      if (settings.fontSize) setFontSize(settings.fontSize);
-    }
-  }, [settings?.fontFamily, settings?.fontSize]);
-
-  // Real-time caret typography detection across document selection changes
-  useEffect(() => {
-    const updateCaret = () => {
-      try {
-        const info = detectCaretTypography(settings?.fontFamily || 'Meiryo', settings?.fontSize || '10.5pt');
-        setCaretInfo(info);
-        // Only sync select dropdowns if focused inside editor
-        const sel = window.getSelection();
-        if (sel && sel.rangeCount > 0 && sel.anchorNode) {
-          const editor = document.getElementById('rich-text-editor-content');
-          if (editor && editor.contains(sel.anchorNode)) {
-            setFontFamily(info.fontFamily);
-            setFontSize(info.fontSizePt);
-          }
-        }
-      } catch {
-        // ignore
-      }
-    };
-
-    document.addEventListener('selectionchange', updateCaret);
-    document.addEventListener('keyup', updateCaret);
-    document.addEventListener('mouseup', updateCaret);
-
-    return () => {
-      document.removeEventListener('selectionchange', updateCaret);
-      document.removeEventListener('keyup', updateCaret);
-      document.removeEventListener('mouseup', updateCaret);
-    };
-  }, [settings?.fontFamily, settings?.fontSize]);
-
-  // Handle Scanning PC installed fonts
-  const handleScanPCFonts = async () => {
-    setIsLoadingPCFonts(true);
-    showToast('PC端末のローカルフォントを読み込んでいます...');
-    try {
-      const fonts = await queryPCLoaclFonts();
-      const all = getAllAvailableFonts();
-      setAvailableFonts(all);
-      showToast(`PCフォントを ${fonts.length} 件 読み込みました`);
-    } catch (err) {
-      showToast('PCフォント読み込みに失敗しました');
-    } finally {
-      setIsLoadingPCFonts(false);
-    }
-  };
-
-  const showToast = (msg: string) => {
-    setStatusToast(msg);
-    setTimeout(() => setStatusToast(''), 3500);
-  };
-
-  // Add custom font by name
-  const handleAddCustomFont = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customFontInput.trim()) return;
-    addCustomFont(customFontInput.trim());
-    setAvailableFonts(getAllAvailableFonts());
-    setFontFamily(customFontInput.trim());
-    onApplyFormat('fontName', customFontInput.trim());
-    setShowCustomFontPrompt(false);
-    showToast(`フォント「${customFontInput.trim()}」を追加しました`);
-    setCustomFontInput('');
-  };
-
-  // Set current caret or selected font/size as user default system base
-  const handleSetCurrentAsDefault = () => {
-    const targetFont = fontFamily || caretInfo.fontFamily || defaultFontFamily;
-    const targetSize = fontSize || caretInfo.fontSizePt || defaultFontSize;
-    if (onSetDefaultTypography) {
-      onSetDefaultTypography(targetFont, targetSize);
-    }
-    showToast(`基本表示フォントを「${getFriendlyFontName(targetFont)} (${targetSize})」に設定しました`);
-  };
-
-  // Capture selection range before opening color picker popovers
-  const captureSelection = () => {
-    try {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        setSavedRange(sel.getRangeAt(0).cloneRange());
-      }
-    } catch {
-      // ignore
-    }
-  };
-
-  // Close textbox menu on outside click
-  useEffect(() => {
-    if (!showTextboxMenu) return;
-    const handleClickOutside = (e: MouseEvent) => {
-      if (textboxMenuRef.current && !textboxMenuRef.current.contains(e.target as Node)) {
-        setShowTextboxMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showTextboxMenu]);
-
-  const colors = [
-    '#000000', '#475569', '#dc2626', '#ea580c', '#d97706', 
-    '#16a34a', '#0284c7', '#4f46e5', '#9333ea', '#db2777'
-  ];
-
-  const badges = [
-    { name: 'なし', color: undefined },
-    { name: 'オレンジ', color: '#fb923c' },
-    { name: 'パープル', color: '#c084fc' },
-    { name: 'イエロー', color: '#fde047' },
-    { name: 'グリーン', color: '#86efac' },
-    { name: 'シアン', color: '#67e8f9' },
-    { name: 'ピンク', color: '#f472b6' },
-    { name: 'レッド', color: '#ef4444' },
-  ];
-
-  const handlePastePlainText = async () => {
+// We define our new return statement
+const newReturn = `  const handlePastePlainText = async () => {
     try {
       const text = await navigator.clipboard.readText();
       onApplyFormat('insertText', text);
@@ -427,9 +162,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   setShowHighlightPicker(false);
                 }}
                 title="文字・段落書式ギャラリー (見出し・マーカー・下線スタイル・字下げ一覧)"
-                className={`h-7 px-2 rounded border flex items-center space-x-1.5 transition cursor-pointer ${
+                className={\`h-7 px-2 rounded border flex items-center space-x-1.5 transition cursor-pointer \${
                   showStyleGallery ? 'bg-blue-100 border-blue-500 text-blue-900 shadow-xs font-semibold' : 'bg-white border-slate-300 hover:border-blue-400 hover:bg-slate-50 text-slate-800'
-                }`}
+                }\`}
               >
                 <div className="flex items-center space-x-1">
                   <span className="font-serif font-bold text-[12px] text-blue-700">か力漢</span>
@@ -473,24 +208,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               <span className="text-[10px] hidden sm:inline">注釈 [※]</span>
             </button>
 
-            {onBookmarkSentence && (
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={onBookmarkSentence}
-                title="選択した文章をブックマーク (Ctrl+Shift+B)"
-                className="p-1.5 rounded bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-900 flex items-center space-x-1 font-bold cursor-pointer"
-              >
-                <Bookmark className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="text-[10px] hidden sm:inline">文章BM</span>
-                {sentenceBookmarksCount > 0 && (
-                  <span className="ml-0.5 bg-indigo-200 text-indigo-800 text-[9px] px-1 rounded-full">
-                    {sentenceBookmarksCount}
-                  </span>
-                )}
-              </button>
-            )}
-
             {/* Other Insertions (Callout, Image, Link, Textbox) */}
             <button
               onMouseDown={(e) => e.preventDefault()}
@@ -525,9 +242,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 type="button"
                 onClick={() => setShowTextboxMenu(!showTextboxMenu)}
                 title="テキストボックスを挿入 (横書き / 縦書き)"
-                className={`p-1.5 rounded hover:bg-white border transition cursor-pointer flex items-center space-x-0.5 text-slate-700 ${
+                className={\`p-1.5 rounded hover:bg-white border transition cursor-pointer flex items-center space-x-0.5 text-slate-700 \${
                   showTextboxMenu ? 'bg-blue-100 border-blue-400 text-blue-900 shadow-xs' : 'hover:border-slate-300 border-transparent'
-                }`}
+                }\`}
               >
                 <SquarePen className="w-3.5 h-3.5 text-slate-800" />
                 <ChevronDown className="w-2.5 h-2.5 text-slate-500" />
@@ -578,12 +295,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 <button
                   onClick={onToggleBookmark}
                   id="editor-toolbar-bookmark-btn"
-                  className={`flex items-center space-x-1 px-2 py-1 border rounded text-xs transition shadow-2xs font-medium ${
+                  className={\`flex items-center space-x-1 px-2 py-1 border rounded text-xs transition shadow-2xs font-medium \${
                     isBookmarked ? 'bg-amber-100 border-amber-400 text-amber-900 font-bold hover:bg-amber-200' : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700'
-                  }`}
+                  }\`}
                   title="このノートをブックマークに追加 / 解除 (Ctrl+D)"
                 >
-                  <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-amber-400 text-amber-500' : 'text-slate-400'}`} />
+                  <Star className={\`w-3.5 h-3.5 \${isBookmarked ? 'fill-amber-400 text-amber-500' : 'text-slate-400'}\`} />
                   <span className="text-[11px] hidden sm:inline">{isBookmarked ? '★ 登録中' : '☆ ノート'}</span>
                 </button>
               )}
@@ -592,9 +309,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowColorBadgeMenu(!showColorBadgeMenu)}
-                    className={`px-2 py-1 border rounded text-xs transition shadow-2xs flex items-center space-x-1 ${
+                    className={\`px-2 py-1 border rounded text-xs transition shadow-2xs flex items-center space-x-1 \${
                       currentColorBadge ? 'bg-white border-slate-300 hover:bg-slate-50' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-600'
-                    }`}
+                    }\`}
                     title="ノートのラベル色・バッジカラーを設定"
                   >
                     {currentColorBadge ? (
@@ -695,9 +412,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   setShowHighlightPicker(false);
                 }}
                 title="文字色の変更 (カラーピッカー・パレット)"
-                className={`px-1.5 py-1 rounded flex flex-col items-center justify-center transition cursor-pointer border ${
+                className={\`px-1.5 py-1 rounded flex flex-col items-center justify-center transition cursor-pointer border \${
                   showTextColorPicker ? 'bg-blue-100 border-blue-400 text-blue-900 shadow-xs' : 'hover:bg-white border-transparent hover:border-slate-300 text-slate-800'
-                }`}
+                }\`}
               >
                 <div className="flex items-center space-x-0.5">
                   <span className="font-bold text-[13px] font-serif leading-none text-slate-900">A</span>
@@ -732,9 +449,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   setShowTextColorPicker(false);
                 }}
                 title="蛍光ペン・マーカー色"
-                className={`px-1.5 py-1 rounded flex flex-col items-center justify-center transition cursor-pointer border ${
+                className={\`px-1.5 py-1 rounded flex flex-col items-center justify-center transition cursor-pointer border \${
                   showHighlightPicker ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs' : 'hover:bg-white border-transparent hover:border-slate-300 text-slate-800'
-                }`}
+                }\`}
               >
                 <div className="flex items-center space-x-0.5">
                   <Highlighter className="w-3.5 h-3.5 text-amber-600" />
@@ -794,15 +511,15 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     ? '書式コピーモード有効中: 適用したいテキストを選択してください (クリックで解除)'
                     : '書式のコピー (書式ペインター) [Ctrl+Shift+C]: 選択範囲の書式をコピーし、次に選択した範囲に自動適用'
                 }
-                className={`p-1.5 rounded transition cursor-pointer flex items-center justify-center ${
+                className={\`p-1.5 rounded transition cursor-pointer flex items-center justify-center \${
                   isFormatPainterActive
                     ? 'bg-amber-300 hover:bg-amber-400 text-amber-950 ring-2 ring-amber-400 shadow-xs'
                     : hasCopiedFormat
                     ? 'bg-indigo-100 hover:bg-indigo-200 border border-indigo-300 text-indigo-700'
                     : 'hover:bg-white border border-transparent hover:border-slate-300 text-slate-700'
-                }`}
+                }\`}
               >
-                <Paintbrush className={`w-3.5 h-3.5 ${isFormatPainterActive ? 'text-amber-950 animate-pulse' : hasCopiedFormat ? 'text-indigo-700' : 'text-slate-700'}`} />
+                <Paintbrush className={\`w-3.5 h-3.5 \${isFormatPainterActive ? 'text-amber-950 animate-pulse' : hasCopiedFormat ? 'text-indigo-700' : 'text-slate-700'}\`} />
               </button>
             )}
 
@@ -932,3 +649,6 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
     </div>
   );
 };
+`;
+
+fs.writeFileSync('./src/components/EditorToolbar.tsx', beforeReturn + newReturn);
