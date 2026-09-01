@@ -1,6 +1,5 @@
 import fs from 'fs';
+
 let content = fs.readFileSync('src/components/NotebookTabBar.tsx', 'utf8');
-if (!content.includes('Edit3, Plus,')) {
-    content = content.replace('Plus, X, FolderOpen,', 'Edit3, Plus, X, FolderOpen,');
-}
+content = content.replace(/  const deleteTabWithConfirm = [\s\S]*?};\n/, '');
 fs.writeFileSync('src/components/NotebookTabBar.tsx', content);

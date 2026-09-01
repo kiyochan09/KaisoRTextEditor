@@ -291,10 +291,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   };
 
   return (
-    <div id="editor-toolbar" className="bg-slate-100 border-b border-slate-300 px-3 py-1.5 flex flex-col gap-1.5 text-xs select-none shadow-2xs relative">
+    <div id="editor-toolbar" className="bg-stone-100 border-b border-stone-300 px-3 py-1.5 flex flex-col gap-1.5 text-xs select-none shadow-2xs relative">
       {/* Toast notification banner */}
       {statusToast && (
-        <div className="absolute top-10 right-4 z-50 bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+        <div className="absolute top-10 right-4 z-50 bg-stone-900 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
           <Check className="w-3.5 h-3.5 text-emerald-400" />
           <span>{statusToast}</span>
         </div>
@@ -322,7 +322,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 setFontFamily(val);
                 onApplyFormat('fontName', val);
               }}
-              className="h-7 text-xs bg-white border border-slate-300 rounded px-1.5 focus:outline-none max-w-[130px] font-sans"
+              className="h-7 text-xs bg-white border border-stone-300 rounded px-1.5 focus:outline-none max-w-[130px] font-sans"
               title="選択テキストまたはカーソル位置のフォントを変更"
             >
               <optgroup label="--- 基本・プリセット ---">
@@ -358,7 +358,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 setFontSize(e.target.value);
                 onApplyFormat('fontSize', e.target.value);
               }}
-              className="h-7 w-20 text-xs bg-white border border-slate-300 rounded px-1 focus:outline-none font-mono"
+              className="h-7 w-20 text-xs bg-white border border-stone-300 rounded px-1 focus:outline-none font-mono"
               title="選択テキストまたはカーソル位置の文字サイズを変更"
             >
               <option value="8pt">8pt (10.7px)</option>
@@ -377,15 +377,15 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               <option value="36pt">36pt (48px)</option>
             </select>
 
-            <div className="h-4 w-px bg-slate-300 mx-0.5" />
+            <div className="h-4 w-px bg-stone-300 mx-0.5" />
 
             {/* Find, Replace & Global Search Icons */}
-            <div className="flex items-center space-x-0.5 bg-slate-100/90 p-0.5 rounded border border-slate-200">
+            <div className="flex items-center space-x-0.5 bg-stone-100/90 p-0.5 rounded border border-stone-200">
               <button
                 type="button"
                 onClick={onOpenFind}
                 title="開いているタブ内を検索 (Ctrl+F)"
-                className="p-1 rounded hover:bg-white text-slate-700 hover:text-blue-700 transition flex items-center space-x-1 border border-transparent hover:border-slate-300 cursor-pointer"
+                className="p-1 rounded hover:bg-white text-stone-700 hover:text-blue-700 transition flex items-center space-x-1 border border-transparent hover:border-stone-300 cursor-pointer"
               >
                 <Search className="w-3.5 h-3.5 text-blue-600" />
                 <span className="text-[10px] font-medium hidden md:inline">検索</span>
@@ -394,12 +394,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 type="button"
                 onClick={onOpenReplace}
                 title="開いているタブ内を置換 (Ctrl+H)"
-                className="p-1 rounded hover:bg-white text-slate-700 hover:text-blue-700 transition flex items-center space-x-1 border border-transparent hover:border-slate-300 cursor-pointer"
+                className="p-1 rounded hover:bg-white text-stone-700 hover:text-blue-700 transition flex items-center space-x-1 border border-transparent hover:border-stone-300 cursor-pointer"
               >
                 <Replace className="w-3.5 h-3.5 text-amber-600" />
                 <span className="text-[10px] font-medium hidden md:inline">置換</span>
               </button>
-              <div className="h-3 w-px bg-slate-300 mx-0.5" />
+              <div className="h-3 w-px bg-stone-300 mx-0.5" />
               <button
                 type="button"
                 onClick={onOpenGlobalSearch}
@@ -411,7 +411,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               </button>
             </div>
 
-            <div className="h-4 w-px bg-slate-300 mx-0.5" />
+            <div className="h-4 w-px bg-stone-300 mx-0.5" />
 
             {/* Style Gallery Menu */}
             <div className="relative">
@@ -428,14 +428,14 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 }}
                 title="文字・段落書式ギャラリー (見出し・マーカー・下線スタイル・字下げ一覧)"
                 className={`h-7 px-2 rounded border flex items-center space-x-1.5 transition cursor-pointer ${
-                  showStyleGallery ? 'bg-blue-100 border-blue-500 text-blue-900 shadow-xs font-semibold' : 'bg-white border-slate-300 hover:border-blue-400 hover:bg-slate-50 text-slate-800'
+                  showStyleGallery ? 'bg-blue-100 border-blue-500 text-blue-900 shadow-xs font-semibold' : 'bg-white border-stone-300 hover:border-blue-400 hover:bg-stone-50 text-stone-800'
                 }`}
               >
                 <div className="flex items-center space-x-1">
                   <span className="font-serif font-bold text-[12px] text-blue-700">か力漢</span>
-                  <span className="text-[11px] font-medium text-slate-700 hidden sm:inline">書式スタイル</span>
+                  <span className="text-[11px] font-medium text-stone-700 hidden sm:inline">書式スタイル</span>
                 </div>
-                <ChevronDown className="w-3 h-3 text-slate-500" />
+                <ChevronDown className="w-3 h-3 text-stone-500" />
               </button>
               {showStyleGallery && (
                 <StyleGalleryPopover
@@ -461,7 +461,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               )}
             </div>
 
-            <div className="h-4 w-px bg-slate-300 mx-0.5" />
+            <div className="h-4 w-px bg-stone-300 mx-0.5" />
 
             <button
               onMouseDown={(e) => e.preventDefault()}
@@ -506,7 +506,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={onInsertImage}
               title="画像を挿入 (パソコン内のファイル / Web画像URL)..."
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 hover:text-emerald-700 cursor-pointer flex items-center space-x-1"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 hover:text-emerald-700 cursor-pointer flex items-center space-x-1"
             >
               <Image className="w-3.5 h-3.5 text-emerald-600" />
               <span className="text-[10px] font-medium hidden lg:inline">画像</span>
@@ -515,7 +515,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               onMouseDown={(e) => e.preventDefault()}
               onClick={onInsertLink}
               title="リンクを挿入"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 cursor-pointer"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 cursor-pointer"
             >
               <Link className="w-3.5 h-3.5 text-indigo-600" />
             </button>
@@ -525,16 +525,16 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 type="button"
                 onClick={() => setShowTextboxMenu(!showTextboxMenu)}
                 title="テキストボックスを挿入 (横書き / 縦書き)"
-                className={`p-1.5 rounded hover:bg-white border transition cursor-pointer flex items-center space-x-0.5 text-slate-700 ${
-                  showTextboxMenu ? 'bg-blue-100 border-blue-400 text-blue-900 shadow-xs' : 'hover:border-slate-300 border-transparent'
+                className={`p-1.5 rounded hover:bg-white border transition cursor-pointer flex items-center space-x-0.5 text-stone-700 ${
+                  showTextboxMenu ? 'bg-blue-100 border-blue-400 text-blue-900 shadow-xs' : 'hover:border-stone-300 border-transparent'
                 }`}
               >
-                <SquarePen className="w-3.5 h-3.5 text-slate-800" />
-                <ChevronDown className="w-2.5 h-2.5 text-slate-500" />
+                <SquarePen className="w-3.5 h-3.5 text-stone-800" />
+                <ChevronDown className="w-2.5 h-2.5 text-stone-500" />
               </button>
               {showTextboxMenu && (
-                <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-300 rounded-lg shadow-xl z-50 p-1.5 text-xs text-slate-800 animate-in fade-in select-none">
-                  <div className="text-[10px] font-bold text-slate-500 px-1 mb-1 border-b border-slate-100 pb-1">横書きボックス (Horizontal)</div>
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-stone-300 rounded-lg shadow-xl z-50 p-1.5 text-xs text-stone-800 animate-in fade-in select-none">
+                  <div className="text-[10px] font-bold text-stone-500 px-1 mb-1 border-b border-stone-100 pb-1">横書きボックス (Horizontal)</div>
                   <div className="grid grid-cols-2 gap-1 px-1 pt-0.5 mb-2">
                     {TEXTBOX_PRESETS.filter((p) => p.orientation === 'horizontal').map((p) => (
                       <button
@@ -544,14 +544,14 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                           onInsertTextbox?.(p.orientation, p.id);
                           setShowTextboxMenu(false);
                         }}
-                        className="text-left p-1 rounded hover:bg-slate-100 border border-slate-200 text-[10px] cursor-pointer"
+                        className="text-left p-1 rounded hover:bg-stone-100 border border-stone-200 text-[10px] cursor-pointer"
                         title={p.description}
                       >
-                        <div className="font-medium text-slate-800 truncate">{p.label}</div>
+                        <div className="font-medium text-stone-800 truncate">{p.label}</div>
                       </button>
                     ))}
                   </div>
-                  <div className="text-[10px] font-bold text-slate-500 px-1 mb-1 border-b border-slate-100 pb-1">縦書きボックス (Vertical)</div>
+                  <div className="text-[10px] font-bold text-stone-500 px-1 mb-1 border-b border-stone-100 pb-1">縦書きボックス (Vertical)</div>
                   <div className="grid grid-cols-2 gap-1 px-1 pt-0.5">
                     {TEXTBOX_PRESETS.filter((p) => p.orientation === 'vertical').map((p) => (
                       <button
@@ -561,10 +561,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                           onInsertTextbox?.(p.orientation, p.id);
                           setShowTextboxMenu(false);
                         }}
-                        className="text-left p-1 rounded hover:bg-slate-100 border border-slate-200 text-[10px] cursor-pointer"
+                        className="text-left p-1 rounded hover:bg-stone-100 border border-stone-200 text-[10px] cursor-pointer"
                         title={p.description}
                       >
-                        <div className="font-medium text-slate-800 truncate">{p.label}</div>
+                        <div className="font-medium text-stone-800 truncate">{p.label}</div>
                       </button>
                     ))}
                   </div>
@@ -579,11 +579,11 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   onClick={onToggleBookmark}
                   id="editor-toolbar-bookmark-btn"
                   className={`flex items-center space-x-1 px-2 py-1 border rounded text-xs transition shadow-2xs font-medium ${
-                    isBookmarked ? 'bg-amber-100 border-amber-400 text-amber-900 font-bold hover:bg-amber-200' : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700'
+                    isBookmarked ? 'bg-amber-100 border-amber-400 text-amber-900 font-bold hover:bg-amber-200' : 'bg-white hover:bg-stone-50 border-stone-300 text-stone-700'
                   }`}
                   title="このノートをブックマークに追加 / 解除 (Ctrl+D)"
                 >
-                  <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-amber-400 text-amber-500' : 'text-slate-400'}`} />
+                  <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-amber-400 text-amber-500' : 'text-stone-400'}`} />
                   <span className="text-[11px] hidden sm:inline">{isBookmarked ? '★ 登録中' : '☆ ノート'}</span>
                 </button>
               )}
@@ -593,40 +593,40 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     type="button"
                     onClick={() => setShowColorBadgeMenu(!showColorBadgeMenu)}
                     className={`px-2 py-1 border rounded text-xs transition shadow-2xs flex items-center space-x-1 ${
-                      currentColorBadge ? 'bg-white border-slate-300 hover:bg-slate-50' : 'bg-white border-slate-300 hover:bg-slate-50 text-slate-600'
+                      currentColorBadge ? 'bg-white border-stone-300 hover:bg-stone-50' : 'bg-white border-stone-300 hover:bg-stone-50 text-stone-600'
                     }`}
                     title="ノートのラベル色・バッジカラーを設定"
                   >
                     {currentColorBadge ? (
                       <>
                         <span className="w-3 h-3 rounded-full shadow-inner border border-black/10" style={{ backgroundColor: currentColorBadge }} />
-                        <span className="text-[11px] font-medium hidden sm:inline text-slate-800">
+                        <span className="text-[11px] font-medium hidden sm:inline text-stone-800">
                           {NODE_COLOR_BADGES.find((b) => b.color === currentColorBadge)?.name || '色あり'}
                         </span>
                       </>
                     ) : (
                       <>
-                        <Palette className="w-3.5 h-3.5 text-slate-400" />
+                        <Palette className="w-3.5 h-3.5 text-stone-400" />
                         <span className="text-[11px] hidden sm:inline">ラベル色</span>
                       </>
                     )}
-                    <ChevronDown className="w-3 h-3 text-slate-400" />
+                    <ChevronDown className="w-3 h-3 text-stone-400" />
                   </button>
                   {showColorBadgeMenu && (
-                    <div className="absolute top-full right-0 mt-1 bg-white border border-slate-300 rounded-lg shadow-xl z-50 p-2 text-xs flex flex-col gap-1 w-32 animate-in fade-in">
+                    <div className="absolute top-full right-0 mt-1 bg-white border border-stone-300 rounded-lg shadow-xl z-50 p-2 text-xs flex flex-col gap-1 w-32 animate-in fade-in">
                       <button
                         onClick={() => {
                           onChangeColorBadge(undefined);
                           setShowColorBadgeMenu(false);
                         }}
-                        className="flex items-center space-x-2 w-full p-1.5 hover:bg-slate-100 rounded text-left transition text-slate-600"
+                        className="flex items-center space-x-2 w-full p-1.5 hover:bg-stone-100 rounded text-left transition text-stone-600"
                       >
-                        <div className="w-3.5 h-3.5 rounded-full border border-slate-300 bg-transparent flex items-center justify-center overflow-hidden">
+                        <div className="w-3.5 h-3.5 rounded-full border border-stone-300 bg-transparent flex items-center justify-center overflow-hidden">
                           <div className="w-full h-px bg-red-400 rotate-45 transform origin-center" />
                         </div>
                         <span>色なし (標準)</span>
                       </button>
-                      <div className="h-px bg-slate-200 my-0.5 w-full" />
+                      <div className="h-px bg-stone-200 my-0.5 w-full" />
                       {NODE_COLOR_BADGES.map((badge) => (
                         <button
                           key={badge.color}
@@ -634,10 +634,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                             onChangeColorBadge(badge.color);
                             setShowColorBadgeMenu(false);
                           }}
-                          className="flex items-center space-x-2 w-full p-1.5 hover:bg-slate-100 rounded text-left transition"
+                          className="flex items-center space-x-2 w-full p-1.5 hover:bg-stone-100 rounded text-left transition"
                         >
                           <span className="w-3.5 h-3.5 rounded-full shadow-inner border border-black/10" style={{ backgroundColor: badge.color }} />
-                          <span className="text-slate-800">{badge.name}</span>
+                          <span className="text-stone-800">{badge.name}</span>
                           {currentColorBadge === badge.color && <Check className="w-3 h-3 text-blue-600 ml-auto" />}
                         </button>
                       ))}
@@ -654,33 +654,33 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             <button
               onClick={() => onApplyFormat('bold')}
               title="太字 (Ctrl+B)"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 font-bold text-slate-800"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 font-bold text-stone-800"
             >
               <Bold className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onApplyFormat('italic')}
               title="斜体 (Ctrl+I)"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 italic text-slate-800"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 italic text-stone-800"
             >
               <Italic className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onApplyFormat('underline')}
               title="下線 (Ctrl+U)"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 underline text-slate-800"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 underline text-stone-800"
             >
               <Underline className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onApplyFormat('strikeThrough')}
               title="取り消し線"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-800"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-800"
             >
               <Strikethrough className="w-3.5 h-3.5" />
             </button>
 
-            <div className="h-4 w-px bg-slate-300 mx-0.5" />
+            <div className="h-4 w-px bg-stone-300 mx-0.5" />
 
             {/* Text Color & Highlight Color Pickers */}
             <div className="relative">
@@ -696,12 +696,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 }}
                 title="文字色の変更 (カラーピッカー・パレット)"
                 className={`px-1.5 py-1 rounded flex flex-col items-center justify-center transition cursor-pointer border ${
-                  showTextColorPicker ? 'bg-blue-100 border-blue-400 text-blue-900 shadow-xs' : 'hover:bg-white border-transparent hover:border-slate-300 text-slate-800'
+                  showTextColorPicker ? 'bg-blue-100 border-blue-400 text-blue-900 shadow-xs' : 'hover:bg-white border-transparent hover:border-stone-300 text-stone-800'
                 }`}
               >
                 <div className="flex items-center space-x-0.5">
-                  <span className="font-bold text-[13px] font-serif leading-none text-slate-900">A</span>
-                  <ChevronDown className="w-2.5 h-2.5 text-slate-500" />
+                  <span className="font-bold text-[13px] font-serif leading-none text-stone-900">A</span>
+                  <ChevronDown className="w-2.5 h-2.5 text-stone-500" />
                 </div>
                 <span className="w-4 h-1 rounded-xs mt-0.5 shadow-2xs border border-black/20" style={{ backgroundColor: textColor || '#0f172a' }} />
               </button>
@@ -733,12 +733,12 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 }}
                 title="蛍光ペン・マーカー色"
                 className={`px-1.5 py-1 rounded flex flex-col items-center justify-center transition cursor-pointer border ${
-                  showHighlightPicker ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs' : 'hover:bg-white border-transparent hover:border-slate-300 text-slate-800'
+                  showHighlightPicker ? 'bg-amber-100 border-amber-400 text-amber-900 shadow-xs' : 'hover:bg-white border-transparent hover:border-stone-300 text-stone-800'
                 }`}
               >
                 <div className="flex items-center space-x-0.5">
                   <Highlighter className="w-3.5 h-3.5 text-amber-600" />
-                  <ChevronDown className="w-2.5 h-2.5 text-slate-500" />
+                  <ChevronDown className="w-2.5 h-2.5 text-stone-500" />
                 </div>
                 <span className="w-4 h-1 rounded-xs mt-0.5 shadow-2xs border border-black/20" style={{ backgroundColor: highlightColor || '#fef08a' }} />
               </button>
@@ -757,14 +757,14 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               )}
             </div>
 
-            <div className="h-4 w-px bg-slate-300 mx-0.5" />
+            <div className="h-4 w-px bg-stone-300 mx-0.5" />
 
             {/* Paste Plain Text */}
             <button
               type="button"
               onClick={handlePastePlainText}
               title="プレーンテキストとして貼り付け"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 hover:text-emerald-700 cursor-pointer flex items-center justify-center space-x-1"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 hover:text-emerald-700 cursor-pointer flex items-center justify-center space-x-1"
             >
               <FileText className="w-3.5 h-3.5" />
               <span className="text-[10px] hidden md:inline font-medium">テキスト貼付</span>
@@ -776,7 +776,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 type="button"
                 onClick={onPasteFormat}
                 title="コピーした書式を貼り付け"
-                className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 hover:text-blue-700 cursor-pointer flex items-center justify-center space-x-1"
+                className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 hover:text-blue-700 cursor-pointer flex items-center justify-center space-x-1"
               >
                 <Paintbrush className="w-3.5 h-3.5" />
                 <span className="text-[10px] hidden md:inline font-medium">書式貼付</span>
@@ -799,10 +799,10 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     ? 'bg-amber-300 hover:bg-amber-400 text-amber-950 ring-2 ring-amber-400 shadow-xs'
                     : hasCopiedFormat
                     ? 'bg-indigo-100 hover:bg-indigo-200 border border-indigo-300 text-indigo-700'
-                    : 'hover:bg-white border border-transparent hover:border-slate-300 text-slate-700'
+                    : 'hover:bg-white border border-transparent hover:border-stone-300 text-stone-700'
                 }`}
               >
-                <Paintbrush className={`w-3.5 h-3.5 ${isFormatPainterActive ? 'text-amber-950 animate-pulse' : hasCopiedFormat ? 'text-indigo-700' : 'text-slate-700'}`} />
+                <Paintbrush className={`w-3.5 h-3.5 ${isFormatPainterActive ? 'text-amber-950 animate-pulse' : hasCopiedFormat ? 'text-indigo-700' : 'text-stone-700'}`} />
               </button>
             )}
 
@@ -812,45 +812,45 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                 onClick={onClearFormat}
                 id="editor-toolbar-clear-format-btn"
                 title="書式のクリア: 選択中の文字装飾を標準に戻す"
-                className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 hover:text-red-600 cursor-pointer flex items-center justify-center"
+                className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 hover:text-red-600 cursor-pointer flex items-center justify-center"
               >
                 <Eraser className="w-3.5 h-3.5" />
               </button>
             )}
 
-            <div className="h-4 w-px bg-slate-300 mx-0.5" />
+            <div className="h-4 w-px bg-stone-300 mx-0.5" />
 
             {/* Text Alignment */}
             <button
               onClick={() => onApplyFormat('justifyLeft')}
               title="左揃え"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700"
             >
               <AlignLeft className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onApplyFormat('justifyCenter')}
               title="中央揃え"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700"
             >
               <AlignCenter className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onApplyFormat('justifyRight')}
               title="右揃え"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700"
             >
               <AlignRight className="w-3.5 h-3.5" />
             </button>
 
-            <div className="h-4 w-px bg-slate-300 mx-0.5" />
+            <div className="h-4 w-px bg-stone-300 mx-0.5" />
 
             {/* Lists & Indentation */}
             <button
               type="button"
               onClick={() => onApplyFormat('insertUnorderedList')}
               title="箇条書きリスト (箇条書き)"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 cursor-pointer"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 cursor-pointer"
             >
               <List className="w-3.5 h-3.5" />
             </button>
@@ -858,7 +858,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               type="button"
               onClick={() => onApplyFormat('insertOrderedList')}
               title="段落番号リスト (番号付き)"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 cursor-pointer"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 cursor-pointer"
             >
               <ListOrdered className="w-3.5 h-3.5" />
             </button>
@@ -867,7 +867,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               id="editor-toolbar-outdent-btn"
               onClick={() => onApplyFormat('outdent')}
               title="インデント解除 (左へシフト / Shift+Tab)"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 cursor-pointer"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 cursor-pointer"
             >
               <Outdent className="w-3.5 h-3.5" />
             </button>
@@ -876,7 +876,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
               id="editor-toolbar-indent-btn"
               onClick={() => onApplyFormat('indent')}
               title="インデントの追加 (右へシフト / Tab)"
-              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-slate-300 text-slate-700 cursor-pointer"
+              className="p-1.5 rounded hover:bg-white border border-transparent hover:border-stone-300 text-stone-700 cursor-pointer"
             >
               <Indent className="w-3.5 h-3.5" />
             </button>
@@ -886,14 +886,14 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
       {/* Custom Font Prompt Modal */}
       {showCustomFontPrompt && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-300 p-5 max-w-md w-full animate-in zoom-in-95">
-            <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-2xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-stone-300 p-5 max-w-md w-full animate-in zoom-in-95">
+            <h4 className="text-sm font-bold text-stone-900 mb-2 flex items-center gap-2">
               <Type className="w-4 h-4 text-blue-600" />
               <span>カスタムフォント名の追加</span>
             </h4>
-            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
-              PCにインストールされているフォント名、またはWebフォント名を入力してください。（例: <code className="bg-slate-100 px-1 py-0.5 rounded text-blue-800">Noto Sans JP</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-blue-800">YuGothic</code>, <code className="bg-slate-100 px-1 py-0.5 rounded text-blue-800">Meiryo</code>）
+            <p className="text-xs text-stone-600 mb-4 leading-relaxed">
+              PCにインストールされているフォント名、またはWebフォント名を入力してください。（例: <code className="bg-stone-100 px-1 py-0.5 rounded text-blue-800">Noto Sans JP</code>, <code className="bg-stone-100 px-1 py-0.5 rounded text-blue-800">YuGothic</code>, <code className="bg-stone-100 px-1 py-0.5 rounded text-blue-800">Meiryo</code>）
             </p>
             <form onSubmit={handleAddCustomFont} className="space-y-4">
               <div>
@@ -902,7 +902,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                   value={customFontInput}
                   onChange={(e) => setCustomFontInput(e.target.value)}
                   placeholder="フォント名を入力"
-                  className="w-full text-sm px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
+                  className="w-full text-sm px-3 py-2 border border-stone-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 font-sans"
                   autoFocus
                 />
               </div>
@@ -913,7 +913,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
                     setShowCustomFontPrompt(false);
                     setCustomFontInput('');
                   }}
-                  className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded"
+                  className="px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-100 rounded"
                 >
                   キャンセル
                 </button>

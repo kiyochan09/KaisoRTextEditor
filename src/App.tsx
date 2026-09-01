@@ -23,6 +23,7 @@ import { SpecsDocModal } from './components/SpecsDocModal';
 import { FlaskCodeViewerModal } from './components/FlaskCodeViewerModal';
 import { UserManualModal } from './components/UserManualModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
+import { RestoreModal } from './components/RestoreModal';
 import { CreateDatabaseModal } from './components/CreateDatabaseModal';
 import { DatabaseManagerModal } from './components/DatabaseManagerModal';
 import { InsertFootnoteModal } from './components/InsertFootnoteModal';
@@ -123,6 +124,9 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   const [isCreateDbOpen, setIsCreateDbOpen] = useState<boolean>(false);
   const [isDbManagerOpen, setIsDbManagerOpen] = useState<boolean>(false);
   const [isInsertFootnoteOpen, setIsInsertFootnoteOpen] = useState<boolean>(false);
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState<boolean>(false);
+  const [hasUsedEmergencyRestore, setHasUsedEmergencyRestore] = useState<boolean>(false);
+  const [restoreCandidates, setRestoreCandidates] = useState<{ id: string; name: string }[]>([]);
   const [isInsertBookmarkCardOpen, setIsInsertBookmarkCardOpen] = useState<boolean>(false);
   const [isInsertFigureCaptionOpen, setIsInsertFigureCaptionOpen] = useState<boolean>(false);
   const [savedEditorRangeForFigureCaption, setSavedEditorRangeForFigureCaption] = useState<Range | null>(null);
@@ -617,6 +621,9 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   // Handle notebook tab change
   const handleSelectNotebook = (nbId: string) => {
     setActiveNotebookId(nbId);
+    setNotebooks((prev) =>
+      prev.map((nb) => (nb.id === nbId ? { ...nb, isHidden: false } : nb))
+    );
     const targetNb = notebooks.find((n) => n.id === nbId);
     if (targetNb && targetNb.folderId !== undefined) {
       setActiveTabFolderId(targetNb.folderId);
@@ -657,6 +664,18 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   };
 
   // Rename Tab Folder
+  const handleRenameNotebook = (notebookId: string, newName: string) => {
+    setNotebooks((prev) =>
+      prev.map((nb) => (nb.id === notebookId ? { ...nb, name: newName } : nb))
+    );
+  };
+
+  const handleHideNotebooks = (notebookIds: string[]) => {
+    setNotebooks((prev) =>
+      prev.map((nb) => (notebookIds.includes(nb.id) ? { ...nb, isHidden: true } : nb))
+    );
+  };
+
   const handleRenameTabFolder = (folderId: string, newName: string) => {
     setTabFolders((prev) =>
       prev.map((f) => (f.id === folderId ? { ...f, name: newName } : f))
@@ -697,11 +716,60 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   };
 
   // Delete Notebook/Tab
-  const handleDeleteNotebook = (notebookId: string) => {
-    if (notebooks.length <= 1) return;
-    const remaining = notebooks.filter((nb) => nb.id !== notebookId);
+  const handleRestoreNotebooks = () => {
+    setHasUsedEmergencyRestore(true);
+    const existingNbIds = new Set(notebooks.map(nb => nb.id));
+    const missingNbIds = new Set<string>();
+    
+    (Object.values(nodes) as TreeNode[]).forEach(node => {
+      if (!existingNbIds.has(node.notebookId)) {
+        missingNbIds.add(node.notebookId);
+      }
+    });
+
+    const candidates = Array.from(missingNbIds).map(id => {
+      const rootNodes = (Object.values(nodes) as TreeNode[]).filter(n => n.notebookId === id && n.parentId === null);
+      const rootNode = rootNodes.length > 0 ? rootNodes[0] : (Object.values(nodes) as TreeNode[]).find(n => n.notebookId === id);
+      return {
+        id,
+        name: rootNode ? rootNode.title : `復元タブ (${id.slice(0, 4)})`
+      };
+    });
+
+    setRestoreCandidates(candidates);
+    setIsRestoreModalOpen(true);
+  };
+
+  const executeRestore = (folderId: string | null) => {
+    const newNotebooks: Notebook[] = restoreCandidates.map(c => {
+      const rootNodes = (Object.values(nodes) as TreeNode[]).filter(n => n.notebookId === c.id && n.parentId === null);
+      return {
+        id: c.id,
+        name: c.name,
+        color: '#fef3c7',
+        bgClass: 'bg-amber-100',
+        borderClass: 'border-amber-300',
+        nodeIds: rootNodes.map(n => n.id),
+        folderId: folderId
+      };
+    });
+
+    setNotebooks(prev => [...prev, ...newNotebooks]);
+    setActiveNotebookId(newNotebooks[0].id);
+    if (folderId !== undefined) {
+      setActiveTabFolderId(folderId);
+    }
+    setIsRestoreModalOpen(false);
+  };
+
+  const handleDeleteNotebook = (notebookIdOrIds: string | string[]) => {
+    const idsToDelete = Array.isArray(notebookIdOrIds) ? notebookIdOrIds : [notebookIdOrIds];
+    if (notebooks.length <= idsToDelete.length) return;
+    
+    const remaining = notebooks.filter((nb) => !idsToDelete.includes(nb.id));
     setNotebooks(remaining);
-    if (activeNotebookId === notebookId) {
+    
+    if (idsToDelete.includes(activeNotebookId)) {
       handleSelectNotebook(remaining[0].id);
     }
   };
@@ -1469,24 +1537,24 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
 
   const handleInsertTable = () => {
     const tableHtml = `
-      <table class="border-collapse border border-slate-300 text-xs my-3 w-full max-w-md">
+      <table class="border-collapse border border-stone-300 text-xs my-3 w-full max-w-md">
         <thead>
-          <tr class="bg-slate-100 font-bold">
-            <th class="border border-slate-300 p-1.5 text-left">Header 1</th>
-            <th class="border border-slate-300 p-1.5 text-left">Header 2</th>
-            <th class="border border-slate-300 p-1.5 text-left">Header 3</th>
+          <tr class="bg-stone-100 font-bold">
+            <th class="border border-stone-300 p-1.5 text-left">Header 1</th>
+            <th class="border border-stone-300 p-1.5 text-left">Header 2</th>
+            <th class="border border-stone-300 p-1.5 text-left">Header 3</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td class="border border-slate-300 p-1.5">Value A1</td>
-            <td class="border border-slate-300 p-1.5">Value B1</td>
-            <td class="border border-slate-300 p-1.5">Value C1</td>
+            <td class="border border-stone-300 p-1.5">Value A1</td>
+            <td class="border border-stone-300 p-1.5">Value B1</td>
+            <td class="border border-stone-300 p-1.5">Value C1</td>
           </tr>
           <tr>
-            <td class="border border-slate-300 p-1.5">Value A2</td>
-            <td class="border border-slate-300 p-1.5">Value B2</td>
-            <td class="border border-slate-300 p-1.5">Value C2</td>
+            <td class="border border-stone-300 p-1.5">Value A2</td>
+            <td class="border border-stone-300 p-1.5">Value B2</td>
+            <td class="border border-stone-300 p-1.5">Value C2</td>
           </tr>
         </tbody>
       </table>
@@ -2172,7 +2240,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
 
     // Default: Insert HTML card block into RichTextEditor at exact cursor position
     const cardHtml = `
-      <div class="my-3 p-3 bg-slate-50 border border-slate-300 rounded-lg shadow-xs hover:border-indigo-400 transition" contenteditable="false" style="user-select: text;">
+      <div class="my-3 p-3 bg-stone-50 border border-stone-300 rounded-lg shadow-xs hover:border-indigo-400 transition" contenteditable="false" style="user-select: text;">
         <div style="display: flex; gap: 12px; align-items: flex-start;">
           ${data.thumbnailUrl ? `<img src="${data.thumbnailUrl}" alt="${data.title}" style="width: 80px; height: 60px; object-fit: cover; border-radius: 6px; flex-shrink: 0; border: 1px solid #cbd5e1;" />` : ''}
           <div style="flex: 1; min-width: 0;">
@@ -2270,7 +2338,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
       };
 
       const captionHtml = `
-      <div id="${anchorId}" class="figure-caption-block my-2 p-2 rounded-lg border bg-slate-50 flex flex-col gap-1" style="border-left: 4px solid #10b981;" contenteditable="false" data-caption-id="${captionId}">
+      <div id="${anchorId}" class="figure-caption-block my-2 p-2 rounded-lg border bg-stone-50 flex flex-col gap-1" style="border-left: 4px solid #10b981;" contenteditable="false" data-caption-id="${captionId}">
         <div style="font-weight: bold; color: #047857; font-size: 12px;">${cap.label}</div>
         <div style="font-size: 14px; color: #334155;">${cap.title}</div>
       </div>
@@ -2387,8 +2455,8 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
       id: newNbId,
       name,
       color,
-      bgClass: 'bg-slate-100 text-slate-800 border-slate-300',
-      borderClass: 'border-t-slate-500',
+      bgClass: 'bg-stone-100 text-stone-800 border-stone-300',
+      borderClass: 'border-t-stone-500',
       nodeIds: [rootNodeId],
       folderId: targetFolderId,
     };
@@ -2541,7 +2609,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   };
 
   return (
-    <div id="hierarchical-app-root" className="h-screen w-screen flex flex-col overflow-hidden bg-[#efebe4] font-sans text-slate-900">
+    <div id="hierarchical-app-root" className="h-screen w-screen flex flex-col overflow-hidden bg-[#efebe4] font-sans text-stone-900">
       {/* 1. Top Windows/Desktop Menu Bar */}
       <TopMenuBar
         onNewNote={() => handleAddChildNode(null)}
@@ -2587,6 +2655,17 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
         onOpenErrorLog={() => setIsErrorLogOpen(true)}
       />
 
+      {/* EMERGENCY RESTORE BUTTON */}
+      {!hasUsedEmergencyRestore && (
+        <button
+          onClick={handleRestoreNotebooks}
+          className="fixed top-4 right-4 z-[9999] bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-full shadow-2xl font-bold flex items-center space-x-2 border-4 border-white animate-pulse"
+        >
+          <span className="text-xl">🛟</span>
+          <span>緊急：迷子データの復元</span>
+        </button>
+      )}
+      
       {/* 2. Top Horizontal Tab Bar: Displays the tabs belonging to the active folder in タブ一覧 */}
       <NotebookTabBar
         notebooks={notebooks}
@@ -2597,6 +2676,9 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
         onSelectFolder={handleSelectTabFolder}
         onAddNotebook={handleAddNotebook}
         onDeleteNotebook={handleDeleteNotebook}
+        onRestoreNotebooks={handleRestoreNotebooks}
+        onRenameNotebook={handleRenameNotebook}
+        onHideNotebooks={handleHideNotebooks}
       />
 
       {/* 3. Main Workspace Multi-Panel Area */}
@@ -2617,6 +2699,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
             onAddNotebookToFolder={(folderId, name, color) => handleAddNotebook(name, color || '#e0f2fe', folderId)}
             onMoveNotebookToFolder={handleMoveNotebookToFolder}
             onDeleteNotebook={handleDeleteNotebook}
+            onRestoreNotebooks={handleRestoreNotebooks}
           />
         )}
 
@@ -2752,7 +2835,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
               />
             )
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">
+            <div className="flex-1 flex items-center justify-center text-stone-400 text-xs">
               Select or create a note from the tree to begin editing.
             </div>
           )}
@@ -2801,6 +2884,15 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
       {/* Real-time Error Notification Toast */}
       <ErrorToast onOpenLog={() => setIsErrorLogOpen(true)} />
 
+      {/* Restore Modal */}
+      <RestoreModal
+        isOpen={isRestoreModalOpen}
+        onClose={() => setIsRestoreModalOpen(false)}
+        onConfirm={executeRestore}
+        restoreCandidates={restoreCandidates}
+        tabFolders={tabFolders}
+      />
+      
       {/* Safe In-App Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={nodeToDelete !== null}
@@ -3018,7 +3110,7 @@ export default function App() {
 
   if (!isDbReady) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-slate-50 text-slate-500 flex-col space-y-4">
+      <div className="flex h-screen w-screen items-center justify-center bg-stone-50 text-stone-500 flex-col space-y-4">
         <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
         <p className="font-semibold text-sm">データベースを読み込み中...</p>
       </div>

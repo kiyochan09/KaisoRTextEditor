@@ -18,7 +18,7 @@ export interface TabListPanelProps {
   onMoveFolder: (folderId: string, targetParentId: string | null) => void;
   onAddNotebookToFolder: (folderId: string | null, name: string, color?: string) => void;
   onMoveNotebookToFolder: (notebookId: string, targetFolderId: string | null) => void;
-  onDeleteNotebook?: (notebookId: string) => void;
+  onDeleteNotebook?: (notebookId: string | string[]) => void;
 }
 
 export const TabListPanel: React.FC<TabListPanelProps> = ({
@@ -149,10 +149,10 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
           style={{ paddingLeft: `${depth * 14 + 6}px` }}
           className={`group relative flex items-center justify-between py-1.5 pr-2 rounded text-xs transition cursor-pointer border ${
             isDragOver
-              ? 'bg-blue-100 border-blue-500 ring-2 ring-blue-400 font-bold'
+              ? 'bg-orange-100 border-blue-500 ring-2 ring-blue-400 font-bold'
               : isActive
                 ? 'bg-blue-600 text-white font-semibold border-blue-700 shadow-xs'
-                : 'text-slate-700 hover:bg-[#f3efe6] border-transparent'
+                : 'text-stone-700 hover:bg-stone-300 border-transparent'
           }`}
           title={`${folder.name} (クリックしてこのフォルダのタブ一覧を表示)`}
         >
@@ -163,7 +163,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                 type="button"
                 onClick={(e) => toggleFolder(folder.id, e)}
                 className={`p-0.5 rounded hover:bg-black/10 transition shrink-0 ${
-                  isActive ? 'text-white' : 'text-slate-500'
+                  isActive ? 'text-white' : 'text-stone-500'
                 }`}
               >
                 {isExpanded ? (
@@ -204,7 +204,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                 }}
                 autoFocus
                 onClick={(e) => e.stopPropagation()}
-                className="text-xs px-1 py-0.5 border border-blue-400 rounded bg-white text-slate-900 w-full focus:outline-none"
+                className="text-xs px-1 py-0.5 border border-blue-400 rounded bg-white text-stone-900 w-full focus:outline-none"
               />
             ) : (
               <span className="truncate flex-1 font-medium">{folder.name}</span>
@@ -216,7 +216,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
             {tabsInThisFolder.length > 0 && (
               <span
                 className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono transition ${
-                  isActive ? 'bg-blue-800 text-blue-100' : 'bg-[#f3efe6] text-slate-600'
+                  isActive ? 'bg-orange-800 text-orange-100' : 'bg-stone-300 text-stone-600'
                 }`}
                 title={`${tabsInThisFolder.length} 個のタブ`}
               >
@@ -235,7 +235,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                 }}
                 title="このフォルダ内にサブフォルダを追加 (階層化)"
                 className={`p-0.5 rounded hover:bg-black/10 ${
-                  isActive ? 'text-blue-100 hover:text-white' : 'text-slate-500 hover:text-slate-800'
+                  isActive ? 'text-blue-100 hover:text-white' : 'text-stone-500 hover:text-stone-800'
                 }`}
               >
                 <FolderPlus className="w-3 h-3" />
@@ -250,7 +250,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                 }}
                 title="このフォルダ内に新規タブを追加"
                 className={`p-0.5 rounded hover:bg-black/10 ${
-                  isActive ? 'text-blue-100 hover:text-white' : 'text-slate-500 hover:text-slate-800'
+                  isActive ? 'text-blue-100 hover:text-white' : 'text-stone-500 hover:text-stone-800'
                 }`}
               >
                 <Plus className="w-3 h-3" />
@@ -261,7 +261,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                 onClick={(e) => handleStartRename(folder, e)}
                 title="フォルダ名を変更"
                 className={`p-0.5 rounded hover:bg-black/10 ${
-                  isActive ? 'text-blue-100 hover:text-white' : 'text-slate-500 hover:text-slate-800'
+                  isActive ? 'text-blue-100 hover:text-white' : 'text-stone-500 hover:text-stone-800'
                 }`}
               >
                 <Edit3 className="w-3 h-3" />
@@ -275,7 +275,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                 }}
                 title="フォルダを削除"
                 className={`p-0.5 rounded hover:bg-rose-500 hover:text-white ${
-                  isActive ? 'text-blue-100' : 'text-slate-500'
+                  isActive ? 'text-blue-100' : 'text-stone-500'
                 }`}
               >
                 <Trash2 className="w-3 h-3" />
@@ -310,32 +310,20 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                   style={{ paddingLeft: `${(depth + 1) * 14 + 10}px` }}
                   className={`group relative flex items-center justify-between py-1 pr-2 rounded text-xs transition cursor-pointer ${
                     isTabActive
-                      ? 'bg-blue-100 text-blue-950 font-semibold border border-blue-300'
-                      : 'text-slate-700 hover:bg-[#f3efe6] border border-transparent'
+                      ? 'bg-orange-100 text-blue-950 font-semibold border border-blue-300'
+                      : 'text-stone-700 hover:bg-stone-300 border border-transparent'
                   }`}
                   title={`タブ: ${tab.name} (クリックして開く)`}
                 >
                   <div className="flex items-center space-x-1.5 truncate flex-1">
                     <span
-                      className="w-2.5 h-2.5 rounded-xs shrink-0 border border-slate-400"
+                      className="w-2.5 h-2.5 rounded-xs shrink-0 border border-stone-400"
                       style={{ backgroundColor: tab.color || '#e0f2fe' }}
                     />
                     <span className="truncate">{tab.name}</span>
                   </div>
 
-                  {onDeleteNotebook && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteNotebook(tab.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-rose-100 text-slate-400 hover:text-rose-600 rounded transition"
-                      title="このタブを削除"
-                    >
-                      <Trash2 className="w-2.5 h-2.5" />
-                    </button>
-                  )}
+
                 </div>
               );
             })}
@@ -353,15 +341,15 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
   );
 
   return (
-    <div id="tab-list-hierarchy-panel" className="w-60 bg-[#fbf9f6] border-r border-slate-300 flex flex-col text-xs shrink-0 select-none">
+    <div id="tab-list-hierarchy-panel" className="w-60 bg-stone-200 border-r border-stone-300 flex flex-col text-xs shrink-0 select-none">
       {/* Header */}
-      <div className="p-2 bg-[#f3efe6] border-b border-slate-300 flex flex-col space-y-1.5">
+      <div className="p-2 bg-stone-300 border-b border-stone-300 flex flex-col space-y-1.5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1.5 font-bold text-slate-800">
-            <Layers className="w-4 h-4 text-blue-600" />
+          <div className="flex items-center space-x-1.5 font-bold text-stone-800">
+            <Layers className="w-4 h-4 text-orange-700" />
             <span className="text-xs">タブ一覧</span>
           </div>
-          <span className="text-[10px] bg-blue-100 text-blue-700 font-semibold px-1.5 py-0.2 rounded border border-blue-200">
+          <span className="text-[10px] bg-orange-100 text-blue-700 font-semibold px-1.5 py-0.2 rounded border border-orange-300">
             フォルダ階層管理
           </span>
         </div>
@@ -371,7 +359,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
           <button
             type="button"
             onClick={() => onCreateFolder(null, '新規フォルダ')}
-            className="flex-1 px-2 py-1 bg-white hover:bg-[#fdfcfb] text-slate-800 rounded border border-slate-300 font-medium text-[11px] flex items-center justify-center space-x-1 shadow-2xs transition hover:border-slate-400 cursor-pointer"
+            className="flex-1 px-2 py-1 bg-white hover:bg-stone-100 text-stone-800 rounded border border-stone-300 font-medium text-[11px] flex items-center justify-center space-x-1 shadow-2xs transition hover:border-stone-400 cursor-pointer"
             title="ルート階層に新しいタブフォルダを作成"
           >
             <FolderPlus className="w-3 h-3 text-amber-600" />
@@ -388,17 +376,17 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                 onCreateFolder(null, '新規サブフォルダ');
               }
             }}
-            className="flex-1 px-2 py-1 bg-white hover:bg-[#fdfcfb] text-slate-800 rounded border border-slate-300 font-medium text-[11px] flex items-center justify-center space-x-1 shadow-2xs transition hover:border-slate-400 cursor-pointer"
+            className="flex-1 px-2 py-1 bg-white hover:bg-stone-100 text-stone-800 rounded border border-stone-300 font-medium text-[11px] flex items-center justify-center space-x-1 shadow-2xs transition hover:border-stone-400 cursor-pointer"
             title={activeFolderId ? `「${tabFolders.find((f) => f.id === activeFolderId)?.name || '選択中'}」内にサブフォルダを追加 (階層化)` : 'サブフォルダを追加'}
           >
-            <Plus className="w-3 h-3 text-blue-600" />
+            <Plus className="w-3 h-3 text-orange-700" />
             <span>+ サブ階層</span>
           </button>
         </div>
       </div>
 
       {/* Root All Tabs / Home Item */}
-      <div className="p-1.5 border-b border-slate-200 bg-[#fdfcfb]/60">
+      <div className="p-1.5 border-b border-stone-200 bg-stone-100/60">
         <button
           type="button"
           onClick={() => {
@@ -410,16 +398,16 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
           className={`w-full text-left px-2 py-1.5 rounded text-xs transition flex items-center justify-between cursor-pointer ${
             activeFolderId === null
               ? 'bg-blue-600 text-white font-semibold shadow-xs'
-              : 'text-slate-700 hover:bg-[#f3efe6]'
+              : 'text-stone-700 hover:bg-stone-300'
           }`}
           title="すべてのタブを表示"
         >
           <div className="flex items-center space-x-1.5">
-            <Layers className={`w-3.5 h-3.5 ${activeFolderId === null ? 'text-blue-200' : 'text-blue-600'}`} />
+            <Layers className={`w-3.5 h-3.5 ${activeFolderId === null ? 'text-blue-200' : 'text-orange-700'}`} />
             <span>すべてのタブ (全体表示)</span>
           </div>
           <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-            activeFolderId === null ? 'bg-blue-800 text-blue-100' : 'bg-[#f3efe6] text-slate-600'
+            activeFolderId === null ? 'bg-orange-800 text-orange-100' : 'bg-stone-300 text-stone-600'
           }`}>
             {notebooks.length}
           </span>
@@ -428,13 +416,13 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
 
       {/* Hierarchical Tab Folders & Tabs List */}
       <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
-        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-1 py-0.5 flex items-center justify-between">
+        <div className="text-[10px] font-bold text-stone-500 uppercase tracking-wider px-1 py-0.5 flex items-center justify-between">
           <span>フォルダ階層</span>
           <div className="flex items-center space-x-1">
             <button
               type="button"
               onClick={() => setExpandedFolderIds(new Set(tabFolders.map((f) => f.id)))}
-              className="text-[9px] text-slate-500 hover:text-slate-900 bg-white px-1 py-0.2 rounded border border-slate-300 cursor-pointer"
+              className="text-[9px] text-stone-500 hover:text-stone-900 bg-white px-1 py-0.2 rounded border border-stone-300 cursor-pointer"
               title="すべて展開"
             >
               展開
@@ -442,7 +430,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
             <button
               type="button"
               onClick={() => setExpandedFolderIds(new Set())}
-              className="text-[9px] text-slate-500 hover:text-slate-900 bg-white px-1 py-0.2 rounded border border-slate-300 cursor-pointer"
+              className="text-[9px] text-stone-500 hover:text-stone-900 bg-white px-1 py-0.2 rounded border border-stone-300 cursor-pointer"
               title="すべて折りたたむ"
             >
               折畳
@@ -455,8 +443,8 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
 
         {/* Unfiled Tabs Section (if any) */}
         {unfiledTabs.length > 0 && (
-          <div className="mt-2 pt-1 border-t border-slate-200">
-            <div className="text-[10px] font-bold text-slate-400 px-1 py-0.5">
+          <div className="mt-2 pt-1 border-t border-stone-200">
+            <div className="text-[10px] font-bold text-stone-400 px-1 py-0.5">
               未分類のタブ ({unfiledTabs.length})
             </div>
             {unfiledTabs.map((tab) => {
@@ -472,13 +460,13 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
                   }}
                   className={`flex items-center justify-between py-1 px-2 rounded text-xs transition cursor-pointer ${
                     isTabActive
-                      ? 'bg-blue-100 text-blue-950 font-semibold border border-blue-300'
-                      : 'text-slate-700 hover:bg-[#f3efe6] border border-transparent'
+                      ? 'bg-orange-100 text-blue-950 font-semibold border border-blue-300'
+                      : 'text-stone-700 hover:bg-stone-300 border border-transparent'
                   }`}
                 >
                   <div className="flex items-center space-x-1.5 truncate">
                     <span
-                      className="w-2.5 h-2.5 rounded-xs shrink-0 border border-slate-400"
+                      className="w-2.5 h-2.5 rounded-xs shrink-0 border border-stone-400"
                       style={{ backgroundColor: tab.color || '#e0f2fe' }}
                     />
                     <span className="truncate">{tab.name}</span>
@@ -491,7 +479,7 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
       </div>
 
       {/* Footer Instructions */}
-      <div className="p-1.5 bg-[#f3efe6] border-t border-slate-300 text-[10px] text-slate-500 text-center leading-tight">
+      <div className="p-1.5 bg-stone-300 border-t border-stone-300 text-[10px] text-stone-500 text-center leading-tight">
         フォルダを選択すると上部にそのタブ群が表示されます
       </div>
     </div>

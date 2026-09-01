@@ -301,17 +301,17 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
           style={{ paddingLeft: `${depth * 14 + 6}px` }}
           className={`group relative flex items-center justify-between py-1 pr-2 rounded transition-all cursor-pointer border ${
             isDragOver && dropPosition === 'inside'
-              ? 'bg-blue-100/90 border-blue-500 ring-2 ring-blue-400 text-blue-950 font-bold shadow-xs' 
+              ? 'bg-amber-100 border-amber-500 ring-2 ring-amber-300 text-amber-950 font-bold shadow-xs' 
               : isSelected 
                 ? 'bg-blue-100/90 text-blue-950 font-medium border-blue-300 shadow-2xs' 
-                : 'text-slate-700 border-transparent hover:bg-[#f3efe6]/80'
+                : 'text-stone-700 border-transparent hover:bg-stone-100/80'
           }`}
           title="ドラッグして他のフォルダ・ノートの上/中/下に移動可能"
         >
           {/* Drop Before Indicator Line */}
           {isDragOver && dropPosition === 'before' && (
-            <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600 z-20 flex items-center pointer-events-none rounded-full">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-600 -ml-1 border-2 border-white shadow-xs" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-amber-600 z-20 flex items-center pointer-events-none rounded-full">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-600 -ml-1 border-2 border-white shadow-xs" />
               <span className="ml-auto text-[9px] bg-blue-600 text-white font-bold px-1 rounded-xs shadow-2xs mr-1">
                 ↑ 直前に配置
               </span>
@@ -320,8 +320,8 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
 
           {/* Drop After Indicator Line */}
           {isDragOver && dropPosition === 'after' && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 z-20 flex items-center pointer-events-none rounded-full">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-600 -ml-1 border-2 border-white shadow-xs" />
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-amber-600 z-20 flex items-center pointer-events-none rounded-full">
+              <div className="w-2.5 h-2.5 rounded-full bg-amber-600 -ml-1 border-2 border-white shadow-xs" />
               <span className="ml-auto text-[9px] bg-blue-600 text-white font-bold px-1 rounded-xs shadow-2xs mr-1">
                 ↓ 直後に配置
               </span>
@@ -331,7 +331,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
           <div className="flex items-center space-x-1.5 min-w-0 flex-1">
             {/* Drag Handle */}
             <div 
-              className="text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-700 cursor-grab active:cursor-grabbing -ml-1 mr-0.5"
+              className="text-stone-400 opacity-0 group-hover:opacity-100 hover:text-stone-700 cursor-grab active:cursor-grabbing -ml-1 mr-0.5"
               title="ドラッグして並び替え・階層移動"
             >
               <GripVertical className="w-3 h-3" />
@@ -342,7 +342,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
               <button
                 type="button"
                 onClick={(e) => toggleExpand(node.id, e)}
-                className="p-0.5 hover:bg-slate-300 rounded text-slate-500 shrink-0"
+                className="p-0.5 hover:bg-stone-300 rounded text-stone-500 shrink-0"
               >
                 {isExpanded ? (
                   <ChevronDown className="w-3 h-3" />
@@ -378,10 +378,10 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
                 }}
                 autoFocus
                 onClick={(e) => e.stopPropagation()}
-                className="px-1.5 py-0.5 text-xs bg-white border border-blue-500 rounded text-slate-900 w-full focus:outline-hidden shadow-xs"
+                className="px-1.5 py-0.5 text-xs bg-white border border-blue-500 rounded text-stone-900 w-full focus:outline-hidden shadow-xs"
               />
             ) : (
-              <span className="truncate text-[11px] leading-tight text-slate-800 flex-1 flex items-center gap-1">
+              <span className="truncate text-[11px] leading-tight text-stone-800 flex-1 flex items-center gap-1">
                 <span className="truncate">{node.title}</span>
                 {node.isBookmarked && (
                   <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-400 shrink-0" title="ブックマーク登録済み" />
@@ -408,7 +408,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
               }}
               title={node.isBookmarked ? 'ブックマークを解除' : 'ブックマークに追加 (Ctrl+D)'}
               className={`p-1 hover:bg-amber-100 rounded transition ${
-                node.isBookmarked ? 'text-amber-500' : 'text-slate-400 hover:text-amber-600'
+                node.isBookmarked ? 'text-amber-500' : 'text-stone-400 hover:text-amber-600'
               }`}
             >
               <Star className={`w-3 h-3 ${node.isBookmarked ? 'fill-amber-400 text-amber-500' : ''}`} />
@@ -423,7 +423,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
                 setExpandedNodeIds((prev) => new Set(prev).add(node.id));
               }}
               title="この配下に子ノートを追加"
-              className="p-1 hover:bg-emerald-100 hover:text-emerald-700 rounded text-slate-600 transition"
+              className="p-1 hover:bg-emerald-100 hover:text-emerald-700 rounded text-stone-600 transition"
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -433,7 +433,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
               type="button"
               onClick={(e) => startRename(node, e)}
               title="タイトルを変更"
-              className="p-1 hover:bg-blue-100 hover:text-blue-700 rounded text-slate-600 transition"
+              className="p-1 hover:bg-blue-100 hover:text-blue-700 rounded text-stone-600 transition"
             >
               <Edit3 className="w-3 h-3" />
             </button>
@@ -456,7 +456,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
 
         {/* Render child nodes if expanded */}
         {hasChildren && isExpanded && (
-          <div className="border-l border-slate-300 ml-3.5 my-0.5 pl-0.5">
+          <div className="border-l border-stone-300 ml-3.5 my-0.5 pl-0.5">
             {node.children!.map((cid) => renderNode(cid, depth + 1))}
           </div>
         )}
@@ -468,11 +468,11 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
   const bookmarkedCount = (Object.values(nodes) as TreeNode[]).filter((n) => n.isBookmarked).length;
 
   return (
-    <div id="tree-sidebar" className="w-72 bg-[#fbf9f6] border-r border-slate-300 flex flex-col shrink-0 select-none">
+    <div id="tree-sidebar" className="w-72 bg-stone-50 border-r border-stone-300 flex flex-col shrink-0 select-none">
       {/* Tree header toolbar */}
-      <div className="p-2 bg-[#f3efe6] border-b border-slate-300 flex flex-col space-y-1.5">
+      <div className="p-2 bg-stone-100 border-b border-stone-300 flex flex-col space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-1">
+          <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider flex items-center space-x-1">
             <Folder className="w-3.5 h-3.5 text-blue-600" />
             <span>階層ツリー & 整理</span>
           </span>
@@ -480,14 +480,14 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
             <button
               onClick={() => setExpandedNodeIds(new Set(Object.keys(nodes)))}
               title="すべての階層を展開"
-              className="px-1.5 py-0.5 text-[10px] bg-white hover:bg-[#fdfcfb] text-slate-700 rounded border border-slate-300 shadow-2xs"
+              className="px-1.5 py-0.5 text-[10px] bg-white hover:bg-white text-stone-700 rounded border border-stone-300 shadow-2xs"
             >
               全展開
             </button>
             <button
               onClick={() => setExpandedNodeIds(new Set())}
               title="すべての階層を折りたたむ"
-              className="px-1.5 py-0.5 text-[10px] bg-white hover:bg-[#fdfcfb] text-slate-700 rounded border border-slate-300 shadow-2xs"
+              className="px-1.5 py-0.5 text-[10px] bg-white hover:bg-white text-stone-700 rounded border border-stone-300 shadow-2xs"
             >
               全折畳
             </button>
@@ -504,7 +504,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
               className={`flex-1 py-1 px-2 rounded text-[10px] font-bold border flex items-center justify-center space-x-1.5 transition shadow-2xs ${
                 isBookmarkFiltered
                   ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-xs'
-                  : 'bg-white hover:bg-amber-50 text-slate-700 border-slate-300'
+                  : 'bg-white hover:bg-amber-50 text-stone-700 border-stone-300'
               }`}
             >
               <Star className={`w-3 h-3 ${isBookmarkFiltered ? 'fill-amber-950 text-amber-950' : 'text-amber-500 fill-amber-400'}`} />
@@ -518,9 +518,9 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
 
         {/* Quick action bar for active node */}
         {activeNode && (
-          <div className="flex flex-col bg-white border border-slate-300 rounded p-1.5 text-[11px] shadow-2xs space-y-1">
+          <div className="flex flex-col bg-white border border-stone-300 rounded p-1.5 text-[11px] shadow-2xs space-y-1">
             <div className="flex items-center justify-between">
-              <span className="truncate text-slate-700 text-[11px] font-semibold max-w-[140px]" title={activeNode.title}>
+              <span className="truncate text-stone-700 text-[11px] font-semibold max-w-[140px]" title={activeNode.title}>
                 選択: {activeNode.title}
               </span>
               <div className="flex items-center space-x-0.5">
@@ -549,7 +549,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
                   <button
                     onClick={() => onReorderNode(activeNode.id, 'up')}
                     title="上へ並び替え (Alt+Up)"
-                    className="p-1 hover:bg-[#fbf9f6] text-slate-700 rounded border border-slate-200 transition"
+                    className="p-1 hover:bg-stone-200 text-stone-700 rounded border border-stone-200 transition"
                   >
                     <ArrowUp className="w-3 h-3" />
                   </button>
@@ -559,7 +559,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
                   <button
                     onClick={() => onReorderNode(activeNode.id, 'down')}
                     title="下へ並び替え (Alt+Down)"
-                    className="p-1 hover:bg-[#fbf9f6] text-slate-700 rounded border border-slate-200 transition"
+                    className="p-1 hover:bg-stone-200 text-stone-700 rounded border border-stone-200 transition"
                   >
                     <ArrowDown className="w-3 h-3" />
                   </button>
@@ -578,13 +578,13 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
 
         {/* Tree Search filter */}
         <div className="relative">
-          <Search className="w-3 h-3 absolute left-2 top-2 text-slate-400" />
+          <Search className="w-3 h-3 absolute left-2 top-2 text-stone-400" />
           <input
             type="text"
             placeholder="ツリー内をキーワードで絞り込み..."
             value={treeSearchQuery}
             onChange={(e) => setTreeSearchQuery(e.target.value)}
-            className="w-full pl-6 pr-2 py-1 text-[11px] bg-white border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
+            className="w-full pl-6 pr-2 py-1 text-[11px] bg-white border border-stone-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
           />
         </div>
 
@@ -635,7 +635,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
         )}
 
         {rootNodeIds.length === 0 ? (
-          <div className="p-4 text-center text-slate-400 text-xs">
+          <div className="p-4 text-center text-stone-400 text-xs">
             ノートがありません。「新規ノート」ボタンから作成してください。
           </div>
         ) : (
@@ -654,7 +654,7 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
             className={`mt-3 p-2.5 border-2 border-dashed rounded-lg text-center text-xs transition-all ${
               isOverRootDropZone
                 ? 'border-blue-500 bg-blue-100 text-blue-900 font-bold scale-[1.02]'
-                : 'border-slate-300 bg-[#fdfcfb] text-slate-600 hover:border-slate-400'
+                : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
             }`}
           >
             📂 ここにドロップするとルート（最上位）階層へ移動
@@ -663,10 +663,10 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
       </div>
 
       {/* Bottom quick actions */}
-      <div className="p-2 border-t border-slate-300 bg-[#f3efe6] flex items-center space-x-1.5">
+      <div className="p-2 border-t border-stone-300 bg-stone-100 flex items-center space-x-1.5">
         <button
           onClick={() => onAddChildNode(null)}
-          className="flex-1 flex items-center justify-center space-x-1 bg-white hover:bg-[#fdfcfb] border border-slate-300 text-slate-800 px-2 py-1.5 rounded text-xs shadow-2xs font-medium transition"
+          className="flex-1 flex items-center justify-center space-x-1 bg-white hover:bg-white border border-stone-300 text-stone-800 px-2 py-1.5 rounded text-xs shadow-2xs font-medium transition"
         >
           <Plus className="w-3.5 h-3.5 text-emerald-600" />
           <span>+ ノート作成</span>

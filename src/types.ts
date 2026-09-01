@@ -141,6 +141,7 @@ export interface Notebook {
   description?: string;
   nodeIds: string[]; // root node IDs
   folderId?: string | null; // TabFolder ID (null if root or unfiled)
+  isHidden?: boolean; // Tab closed/hidden state
 }
 
 export interface HistoryEntry {

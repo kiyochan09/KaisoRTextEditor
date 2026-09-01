@@ -210,7 +210,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
       items: [
         { label: '書式のコピー (Format Painter)', shortcut: 'Ctrl+Shift+C', action: onCopyFormat, icon: <Paintbrush className="w-3.5 h-3.5 text-indigo-600" /> },
         { label: '書式の貼り付け', shortcut: 'Ctrl+Shift+V', action: onPasteFormat, icon: <ClipboardPaste className="w-3.5 h-3.5 text-indigo-600" /> },
-        { label: '書式のクリア (標準スタイルに戻す)', shortcut: '', action: onClearFormat, icon: <Eraser className="w-3.5 h-3.5 text-slate-500" /> },
+        { label: '書式のクリア (標準スタイルに戻す)', shortcut: '', action: onClearFormat, icon: <Eraser className="w-3.5 h-3.5 text-stone-500" /> },
         { divider: true },
         { label: '⚙️ 既定フォント・本文折り返し設定...', shortcut: '', action: onOpenOptions, icon: <Settings className="w-3.5 h-3.5 text-indigo-600" /> },
         { divider: true },
@@ -270,24 +270,24 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   ];
 
   return (
-    <div id="top-menu-bar" className="bg-[#fbf9f6] border-b border-slate-300 text-slate-700 text-xs select-none">
+    <div id="top-menu-bar" className="bg-stone-100 border-b border-stone-300 text-stone-700 text-xs select-none">
       {/* Windows classic menu header */}
-      <div className="flex items-center justify-between px-2 py-0.5 border-b border-slate-200 bg-gradient-to-b from-[#fdfcfb] to-[#f3efe6]">
+      <div className="flex items-center justify-between px-2 py-0.5 border-b border-stone-200 bg-gradient-to-b from-stone-50 to-stone-200">
         <div className="flex items-center space-x-1">
-          <div className="flex items-center space-x-1.5 font-bold text-slate-800 mr-3 px-1 py-0.5">
+          <div className="flex items-center space-x-1.5 font-bold text-stone-800 mr-3 px-1 py-0.5">
             <span className="text-blue-700 font-serif text-sm">🗂️</span>
-            <span className="tracking-tight text-slate-900 font-sans">階層型リッチノートマネージャー</span>
+            <span className="tracking-tight text-stone-900 font-sans">階層型リッチノートマネージャー</span>
             {/* Database Selector Dropdown */}
           <div className="relative mr-1.5">
             <button
               id="toolbar-db-selector-btn"
               onClick={() => setIsDbDropdownOpen(!isDbDropdownOpen)}
-              className="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded shadow-2xs text-xs font-bold text-slate-800 transition"
+              className="flex items-center space-x-1.5 px-2.5 py-1 bg-white hover:bg-stone-50 border border-stone-300 rounded shadow-2xs text-xs font-bold text-stone-800 transition"
               title="データベース（DB / ワークスペース）を切り替える"
             >
               <Database className="w-3.5 h-3.5 text-blue-600" />
               <span className="max-w-[140px] truncate">{activeDatabaseName}</span>
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ChevronDown className="w-3 h-3 text-stone-400" />
             </button>
 
             {isDbDropdownOpen && (
@@ -296,8 +296,8 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
                   className="fixed inset-0 z-40" 
                   onClick={() => setIsDbDropdownOpen(false)} 
                 />
-                <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-slate-300 shadow-xl rounded-lg z-50 py-1.5 text-slate-800 divide-y divide-slate-100">
-                  <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-stone-300 shadow-xl rounded-lg z-50 py-1.5 text-stone-800 divide-y divide-stone-100">
+                  <div className="px-3 py-1 text-[10px] font-bold text-stone-400 uppercase tracking-wider flex items-center justify-between">
                     <span>データベース切り替え</span>
                     <span>{databases.length} 件</span>
                   </div>
@@ -314,7 +314,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
                             setIsDbDropdownOpen(false);
                           }}
                           className={`w-full px-3 py-1.5 text-left text-xs flex items-center justify-between hover:bg-blue-50 transition ${
-                            isCurrent ? 'bg-blue-50/80 font-bold text-blue-900' : 'text-slate-700'
+                            isCurrent ? 'bg-blue-50/80 font-bold text-blue-900' : 'text-stone-700'
                           }`}
                         >
                           <div className="flex items-center space-x-2 truncate">
@@ -330,7 +330,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-slate-400 shrink-0 ml-1">
+                          <span className="text-[10px] text-stone-400 shrink-0 ml-1">
                             {count}ノート
                           </span>
                         </button>
@@ -354,9 +354,9 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
                         setIsDbDropdownOpen(false);
                         if (onOpenDatabaseManager) onOpenDatabaseManager();
                       }}
-                      className="w-full px-3 py-1.5 text-left text-xs flex items-center space-x-2 text-slate-700 hover:bg-[#fbf9f6]"
+                      className="w-full px-3 py-1.5 text-left text-xs flex items-center space-x-2 text-stone-700 hover:bg-stone-100"
                     >
-                      <FolderTree className="w-3.5 h-3.5 text-slate-500" />
+                      <FolderTree className="w-3.5 h-3.5 text-stone-500" />
                       <span>データベース一覧・管理...</span>
                     </button>
                   </div>
@@ -365,17 +365,17 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
             )}
           </div>
           </div>
-          <span className="text-[11px] text-slate-500 font-sans px-2 truncate max-w-[200px] border-l border-slate-300 ml-1">
-            対象ブック: <strong className="text-slate-800">{activeNotebookName}</strong>
+          <span className="text-[11px] text-stone-500 font-sans px-2 truncate max-w-[200px] border-l border-stone-300 ml-1">
+            対象ブック: <strong className="text-stone-800">{activeNotebookName}</strong>
           </span>
         {/* Note Type Selector Dropdown */}
         {activeNoteType && onChangeNoteType && (
-          <div className="flex items-center space-x-1 ml-1 pl-2 border-l border-slate-300 bg-transparent">
-            <span className="text-[11px] font-semibold text-slate-500">種別:</span>
+          <div className="flex items-center space-x-1 ml-1 pl-2 border-l border-stone-300 bg-transparent">
+            <span className="text-[11px] font-semibold text-stone-500">種別:</span>
             <select
               value={activeNoteType}
               onChange={(e) => onChangeNoteType(e.target.value)}
-              className="text-xs bg-white border border-slate-300 rounded px-1 py-0.5 font-medium text-slate-800 focus:outline-none cursor-pointer"
+              className="text-xs bg-white border border-stone-300 rounded px-1 py-0.5 font-medium text-stone-800 focus:outline-none cursor-pointer"
             >
               <option value="rich">🔴 リッチテキスト (WYSIWYG)</option>
               <option value="spreadsheet">🟠 スプレッドシート (表計算)</option>
@@ -396,7 +396,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
                 className={`px-2.5 py-1 rounded text-xs transition-colors ${
                   activeMenu === menu.name
                     ? 'bg-blue-600 text-white'
-                    : 'hover:bg-[#f3efe6] text-slate-700'
+                    : 'hover:bg-stone-200 text-stone-700'
                 }`}
               >
                 {menu.name}
@@ -408,10 +408,10 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
                     className="fixed inset-0 z-40" 
                     onClick={() => setActiveMenu(null)}
                   />
-                  <div className="absolute top-full left-0 mt-0.5 w-64 bg-white border border-slate-300 shadow-xl rounded-b-md z-50 py-1 text-slate-800">
+                  <div className="absolute top-full left-0 mt-0.5 w-64 bg-white border border-stone-300 shadow-xl rounded-b-md z-50 py-1 text-stone-800">
                     {menu.items.map((item, idx) => (
                       item.divider ? (
-                        <div key={idx} className="my-1 border-t border-slate-200" />
+                        <div key={idx} className="my-1 border-t border-stone-200" />
                       ) : (
                         <button
                           key={idx}
@@ -423,11 +423,11 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
                           className="w-full px-3 py-1.5 text-left text-xs flex items-center justify-between hover:bg-blue-500 hover:text-white group"
                         >
                           <span className="flex items-center space-x-2">
-                            {item.icon && <span className="text-slate-500 group-hover:text-white">{item.icon}</span>}
+                            {item.icon && <span className="text-stone-500 group-hover:text-white">{item.icon}</span>}
                             <span>{item.label}</span>
                           </span>
                           {item.shortcut && (
-                            <span className="text-[10px] text-slate-400 group-hover:text-blue-100 font-mono">{item.shortcut}</span>
+                            <span className="text-[10px] text-stone-400 group-hover:text-blue-100 font-mono">{item.shortcut}</span>
                           )}
                         </button>
                       )
@@ -444,10 +444,10 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
           <button
             id="btn-open-options-top"
             onClick={onOpenOptions}
-            className="flex items-center space-x-1.5 bg-white hover:bg-[#fbf9f6] border border-slate-300 text-slate-800 px-2.5 py-1 rounded text-xs font-semibold shadow-2xs transition"
+            className="flex items-center space-x-1.5 bg-white hover:bg-stone-100 border border-stone-300 text-stone-800 px-2.5 py-1 rounded text-xs font-semibold shadow-2xs transition"
             title="システム全体のフォント、フォントサイズ、本文折り返し位置を設定 (Ctrl+,)"
           >
-            <Settings className="w-3.5 h-3.5 text-slate-700" />
+            <Settings className="w-3.5 h-3.5 text-stone-700" />
             
           </button>
 
