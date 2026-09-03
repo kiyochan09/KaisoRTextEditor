@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { TextStylePreset, StyleCategory } from '../types';
 import { 
   Sparkles, Plus, Eraser, Edit3, Trash2, X, Check, 
-  Settings, Type, AlignLeft, ChevronRight 
-, Eye, EyeOff } from 'lucide-react';
+  Settings, Type, AlignLeft, ChevronRight, Eye, EyeOff, RotateCcw 
+} from 'lucide-react';
 
 interface StyleGalleryPopoverProps {
   characterStyles: TextStylePreset[];
@@ -15,9 +15,11 @@ interface StyleGalleryPopoverProps {
   onEditStyle: (style: TextStylePreset) => void;
   onDeleteStyle: (styleId: string) => void;
   onToggleHideStyle?: (styleId: string) => void;
+  onResetDefaultStyles?: () => void;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLElement | null>;
   savedRange?: Range | null;
+  initialTab?: 'all' | 'character' | 'paragraph';
 }
 
 export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
@@ -30,14 +32,22 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
   onEditStyle,
   onDeleteStyle,
   onToggleHideStyle,
+  onResetDefaultStyles,
   onClose,
   triggerRef,
   savedRange,
+  initialTab = 'all',
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'paragraph'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'character' | 'paragraph'>(initialTab);
   const [hoveredStyleId, setHoveredStyleId] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Close when clicking outside or pressing Escape
   useEffect(() => {
@@ -59,12 +69,9 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
     };
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(e.target as Node)
-      ) {
+      const isOutsidePopover = popoverRef.current && !popoverRef.current.contains(e.target as Node);
+      const isOutsideTrigger = !triggerRef?.current || !triggerRef.current.contains(e.target as Node);
+      if (isOutsidePopover && isOutsideTrigger) {
         onClose();
       }
     };
@@ -140,7 +147,7 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
     <div
       ref={popoverRef}
       id="style-gallery-popover"
-      className="absolute top-full left-0 mt-1.5 w-[460px] bg-white rounded-lg shadow-2xl border border-slate-300 z-50 text-slate-800 text-xs select-none overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+      className="absolute top-full right-0 mt-1.5 w-[460px] bg-white rounded-lg shadow-2xl border border-slate-300 z-50 text-slate-800 text-xs select-none overflow-hidden animate-in fade-in zoom-in-95 duration-100"
     >
       {/* Top Header with Tabs */}
       <div className="bg-slate-100/90 px-3 pt-2.5 pb-2 border-b border-slate-200 flex items-center justify-between">
@@ -273,20 +280,20 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
                         {style.isHidden ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                       </button>
                     )}
-                    {!style.isBuiltin && (
-                      <button
-                        type="button"
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation();
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (window.confirm(`スタイル「${style.name}」を削除してもよろしいですか？`)) {
                           onDeleteStyle(style.id);
-                        }}
-                        title="このスタイルを削除"
-                        className="p-0.5 hover:bg-red-100 hover:text-red-700 text-slate-600 rounded transition cursor-pointer"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
+                        }
+                      }}
+                      title="このスタイルを削除"
+                      className="p-0.5 hover:bg-red-100 hover:text-red-700 text-slate-600 rounded transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
                 )}
               </div>
@@ -327,6 +334,21 @@ export const StyleGalleryPopover: React.FC<StyleGalleryPopoverProps> = ({
             <span>新しいスタイル(<u>N</u>)...</span>
           </button>
         </div>
+
+        {onResetDefaultStyles && (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              onResetDefaultStyles();
+            }}
+            className="flex items-center space-x-1 px-2 py-1 rounded bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer text-xs"
+            title="削除したスタイルを初期状態に戻す"
+          >
+            <RotateCcw className="w-3 h-3 text-slate-400" />
+            <span>初期状態に戻す</span>
+          </button>
+        )}
 
         <div className="text-[10px] text-slate-400">
           合計 {displayedStyles.length} スタイル

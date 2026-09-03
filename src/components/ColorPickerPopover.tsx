@@ -125,12 +125,9 @@ export const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
     };
 
     const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(e.target as Node)
-      ) {
+      const isOutsidePopover = popoverRef.current && !popoverRef.current.contains(e.target as Node);
+      const isOutsideTrigger = !triggerRef?.current || !triggerRef.current.contains(e.target as Node);
+      if (isOutsidePopover && isOutsideTrigger) {
         onClose();
       }
     };
@@ -223,7 +220,7 @@ export const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           {THEME_COLOR_MATRIX.map((column, colIdx) => (
             <div key={colIdx} className="flex flex-col gap-1">
               {column.map((hex) => {
-                const isSelected = currentColor.toLowerCase() === hex.toLowerCase();
+                const isSelected = (currentColor || '').toLowerCase() === hex.toLowerCase();
                 return (
                   <button
                     key={hex}
@@ -257,7 +254,7 @@ export const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         <div className="text-[10px] font-semibold text-slate-500 mb-1">標準カラー</div>
         <div className="grid grid-cols-10 gap-1">
           {STANDARD_COLORS.map((item) => {
-            const isSelected = currentColor.toLowerCase() === item.hex.toLowerCase();
+            const isSelected = (currentColor || '').toLowerCase() === item.hex.toLowerCase();
             return (
               <button
                 key={item.hex}

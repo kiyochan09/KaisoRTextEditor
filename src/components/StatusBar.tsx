@@ -138,9 +138,9 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <span className="hidden sm:inline">100%</span>
 
         {/* Status icon */}
-        <div className="flex items-center space-x-1 text-emerald-700">
+        <div className="flex items-center space-x-1 text-emerald-700" title="すべての変更はIndexedDBに即時自動保存されています">
           <CheckCircle2 className="w-3 h-3" />
-          <span className="hidden md:inline">準備完了</span>
+          <span className="hidden md:inline">自動保存済み</span>
         </div>
       </div>
     </div>

@@ -515,6 +515,55 @@ export const SystemOptionsModal: React.FC<SystemOptionsModalProps> = ({
             {/* TAB 3: Line Height & Layout Alignment */}
             <div className="space-y-8 animate-in fade-in mt-8 border-t border-slate-200 pt-8">
                 
+                {/* Tab Position: Bottom (Default) vs Top */}
+                <div>
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">
+                    <Columns className="w-3.5 h-3.5 text-blue-600" />
+                    <span>開いているタブの表示位置 (Notebook Tabs Position)</span>
+                    <span className="text-[10px] bg-blue-100 text-blue-800 font-semibold px-1.5 py-0.5 rounded">初期値: 下部</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setTempSettings(prev => ({ ...prev, tabPosition: 'bottom' }))}
+                      className={`p-3 rounded-lg border text-left text-xs transition flex items-center space-x-2.5 ${
+                        (tempSettings.tabPosition || 'bottom') === 'bottom'
+                          ? 'bg-blue-50/80 border-blue-500 text-blue-900 ring-2 ring-blue-400/40'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded bg-blue-100 flex flex-col justify-end p-0.5 border border-blue-300 shrink-0">
+                        <div className="w-full h-2 bg-blue-600 rounded-xs"></div>
+                      </div>
+                      <div>
+                        <div className="font-bold flex items-center gap-1">
+                          <span>下部に表示 (Bottom)</span>
+                          <span className="text-[10px] text-blue-600 bg-blue-100 px-1 rounded">初期値・推奨</span>
+                        </div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">エディタ下部・ステータスバーの上に配置</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setTempSettings(prev => ({ ...prev, tabPosition: 'top' }))}
+                      className={`p-3 rounded-lg border text-left text-xs transition flex items-center space-x-2.5 ${
+                        tempSettings.tabPosition === 'top'
+                          ? 'bg-blue-50/80 border-blue-500 text-blue-900 ring-2 ring-blue-400/40'
+                          : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="w-8 h-8 rounded bg-blue-100 flex flex-col justify-start p-0.5 border border-blue-300 shrink-0">
+                        <div className="w-full h-2 bg-blue-600 rounded-xs"></div>
+                      </div>
+                      <div>
+                        <div className="font-bold">上部に表示 (Top)</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">リボン・ツールバーの直下に配置</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Ruler Toggle */}
                 <div>
                   <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5 mb-2">

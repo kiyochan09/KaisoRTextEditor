@@ -80,7 +80,7 @@ export const CreateDatabaseModal: React.FC<CreateDatabaseModalProps> = ({
       return;
     }
 
-    let finalLocationLabel = 'ブラウザ内蔵セキュア領域 (IndexedDB / LocalStorage)';
+    let finalLocationLabel = 'ブラウザ内蔵セキュアデータベース (IndexedDB)';
     let finalPath = '';
 
     if (storageType === 'local_folder') {

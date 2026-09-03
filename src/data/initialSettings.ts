@@ -167,4 +167,7 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = {
   contentAlignment: 'center',
   pagePadding: 'normal',
   showRuler: false,
+  tabPosition: 'bottom',
+  ribbonMinimized: false,
 };
+

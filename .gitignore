@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+scratch/
+FindFootnoteWordDocs.bat
+ScanFootnotes.ps1
+

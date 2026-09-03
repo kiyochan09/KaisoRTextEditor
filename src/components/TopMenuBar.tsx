@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   FileText, FolderPlus, Plus, Save, Printer, Search, Replace, Lock, 
-  FileCode2, BookOpen, Download, Settings, RefreshCw, Layers,
+  BookOpen, Download, Settings, RefreshCw, Layers,
   BookMarked, HelpCircle, Trash2, Database, ChevronDown, Check,
   FolderTree, Sparkles, Star, Bookmark, Globe, Paintbrush, ClipboardPaste, Eraser,
   SquarePen, Rows, Columns, Terminal, Bug, AlertCircle, Image as ImageIcon, Table as TableIcon, MessageSquare
@@ -20,7 +20,6 @@ interface TopMenuBarProps {
   onOpenDocxImport?: () => void;
   onOpenOptions?: () => void;
   onOpenSpecs: () => void;
-  onOpenFlaskCode: () => void;
   onOpenManual: () => void;
   onExportAllJson: () => void;
   onResetSampleData: () => void;
@@ -67,7 +66,6 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
   onOpenDocxImport,
   onOpenOptions,
   onOpenSpecs,
-  onOpenFlaskCode,
   onOpenManual,
   onExportAllJson,
   onResetSampleData,
@@ -109,7 +107,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
         { label: '新規フォルダ', shortcut: 'Ctrl+Shift+N', action: onNewFolder, icon: <FolderPlus className="w-3.5 h-3.5" /> },
         { label: '上書き保存', shortcut: 'Ctrl+S', action: onSave, icon: <Save className="w-3.5 h-3.5" /> },
         { divider: true },
-        { label: '📄 DOCXファイルをインポート...', shortcut: '', action: onOpenDocxImport, icon: <FileText className="w-3.5 h-3.5 text-blue-600" /> },
+        { label: '📄 Word文書（.docx）一括インポート...', shortcut: '', action: onOpenDocxImport, icon: <FileText className="w-3.5 h-3.5 text-blue-600" /> },
         { divider: true },
         { label: '🗄️ 新規データベースを作成 (名前指定)...', shortcut: '', action: onOpenCreateDatabase, icon: <Database className="w-3.5 h-3.5 text-blue-600" /> },
         { label: '📂 データベースの管理・切り替え...', shortcut: '', action: onOpenDatabaseManager, icon: <FolderTree className="w-3.5 h-3.5 text-indigo-600" /> },
@@ -146,7 +144,7 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
       items: [
         { label: '📖 操作マニュアル・ユーザーガイド', shortcut: '', action: onOpenManual, icon: <BookMarked className="w-3.5 h-3.5 text-blue-600" /> },
         { label: 'リソースパネルの表示切替', shortcut: 'F9' },
-        { label: 'フォルダ一覧の表示切替', shortcut: 'Ctrl+B' },
+        { label: '階層1 (フォルダ一覧) の表示切替', shortcut: 'Ctrl+B' },
         { label: 'ルーラー(定規)の表示切替', shortcut: '' },
       ],
     },
@@ -254,7 +252,6 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
         { divider: true },
         { label: '📖 操作マニュアル・ユーザーガイド', shortcut: '', action: onOpenManual, icon: <BookMarked className="w-3.5 h-3.5 text-blue-600" /> },
         { label: '📋 仕様書・設計書ビューア', shortcut: '', action: onOpenSpecs, icon: <BookOpen className="w-3.5 h-3.5 text-indigo-600" /> },
-        { label: '🐍 Flask バックエンドコード生成・閲覧', shortcut: '', action: onOpenFlaskCode, icon: <FileCode2 className="w-3.5 h-3.5 text-emerald-600" /> },
       ],
     },
     {
@@ -264,7 +261,6 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
         { divider: true },
         { label: '📖 操作マニュアル・ユーザーガイド', action: onOpenManual, icon: <BookMarked className="w-3.5 h-3.5 text-blue-600" /> },
         { label: '📋 階層型ノート仕様書・設計書', action: onOpenSpecs, icon: <BookOpen className="w-3.5 h-3.5 text-indigo-600" /> },
-        { label: '🐍 Flask + React システム設計ガイド', action: onOpenFlaskCode, icon: <FileCode2 className="w-3.5 h-3.5 text-emerald-600" /> },
       ],
     },
   ];
@@ -469,16 +465,6 @@ export const TopMenuBar: React.FC<TopMenuBarProps> = ({
           >
             <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
             <span className="font-semibold">仕様書・設計書</span>
-          </button>
-
-          <button
-            id="btn-open-flask-code-top"
-            onClick={onOpenFlaskCode}
-            className="flex items-center space-x-1.5 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded text-xs font-medium shadow-sm transition"
-            title="Flask プロジェクトコードとファイル構造の閲覧・保存"
-          >
-            <FileCode2 className="w-3.5 h-3.5 text-emerald-600" />
-            <span className="font-semibold">Flaskコード</span>
           </button>
         </div>
       </div>

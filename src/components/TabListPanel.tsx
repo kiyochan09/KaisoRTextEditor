@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Notebook, TabFolder } from '../types';
 import { 
-  Folder, FolderPlus, ChevronRight, ChevronDown, Plus, 
+  Folder, FolderPlus, ChevronRight, ChevronLeft, ChevronDown, Plus, 
   FolderOpen, Edit3, Trash2, Layers, Bookmark, Sparkles, Move
 } from 'lucide-react';
 
@@ -19,6 +19,8 @@ export interface TabListPanelProps {
   onAddNotebookToFolder: (folderId: string | null, name: string, color?: string) => void;
   onMoveNotebookToFolder: (notebookId: string, targetFolderId: string | null) => void;
   onDeleteNotebook?: (notebookId: string | string[]) => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const TabListPanel: React.FC<TabListPanelProps> = ({
@@ -35,10 +37,16 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
   onAddNotebookToFolder,
   onMoveNotebookToFolder,
   onDeleteNotebook,
+  isCollapsed = false,
+  onToggleCollapse,
 }) => {
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(
     new Set(tabFolders.map((f) => f.id))
   );
+
+  useEffect(() => {
+    setExpandedFolderIds(new Set(tabFolders.map((f) => f.id)));
+  }, [tabFolders]);
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState('');
 
@@ -76,17 +84,28 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
     return subfolders.some((sub) => isDescendantFolder(sub.id, targetFolderId));
   };
 
-  // Count tabs inside a folder (and its nested subfolders)
+  // 50音順 (Japanese alphabetical collation) 比較関数
+  const compare50On = (aName: string, bName: string): number => {
+    const cleanA = (aName || '').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\s・_\-★☆]+/gu, '').trim() || aName;
+    const cleanB = (bName || '').replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}\s・_\-★☆]+/gu, '').trim() || bName;
+    const res = cleanA.localeCompare(cleanB, 'ja', { numeric: true });
+    if (res !== 0) return res;
+    return (aName || '').localeCompare(bName || '', 'ja');
+  };
+
+  // Count tabs inside a folder (and its nested subfolders) 50音順
   const getTabsInFolder = (folderId: string | null): Notebook[] => {
-    if (folderId === null) {
-      return notebooks.filter((nb) => !nb.folderId);
-    }
-    return notebooks.filter((nb) => nb.folderId === folderId);
+    const list = folderId === null
+      ? notebooks.filter((nb) => !nb.folderId)
+      : notebooks.filter((nb) => nb.folderId === folderId);
+    return [...list].sort((a, b) => compare50On(a.name, b.name));
   };
 
   // Recursive folder renderer
   const renderFolder = (folder: TabFolder, depth = 0): React.ReactNode => {
-    const subfolders = tabFolders.filter((f) => f.parentId === folder.id);
+    const subfolders = tabFolders
+      .filter((f) => f.parentId === folder.id)
+      .sort((a, b) => compare50On(a.name, b.name));
     const tabsInThisFolder = getTabsInFolder(folder.id);
     const isExpanded = expandedFolderIds.has(folder.id);
     const isActive = folder.id === activeFolderId;
@@ -333,12 +352,51 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
     );
   };
 
-  // Top level folders (parentId === null)
-  const topLevelFolders = tabFolders.filter((f) => !f.parentId);
-  // Unfiled tabs (folderId === null or invalid)
-  const unfiledTabs = notebooks.filter(
-    (nb) => !nb.folderId || !tabFolders.some((f) => f.id === nb.folderId)
-  );
+  // Top level folders (parentId === null) 50音順
+  const topLevelFolders = tabFolders
+    .filter((f) => !f.parentId)
+    .sort((a, b) => compare50On(a.name, b.name));
+
+  // Unfiled tabs (folderId === null or invalid) 50音順
+  const unfiledTabs = notebooks
+    .filter((nb) => !nb.folderId || !tabFolders.some((f) => f.id === nb.folderId))
+    .sort((a, b) => compare50On(a.name, b.name));
+
+  // If collapsed, render slim vertical rail
+  if (isCollapsed) {
+    return (
+      <div
+        id="tab-list-hierarchy-panel-collapsed"
+        onClick={onToggleCollapse}
+        className="w-9 bg-stone-200 hover:bg-stone-300/80 border-r border-stone-300 flex flex-col items-center py-2 shrink-0 select-none cursor-pointer transition-colors shadow-2xs group"
+        title="階層1（タブ・フォルダ管理）を展開する"
+      >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCollapse?.();
+          }}
+          title="階層1を展開する"
+          className="p-1 bg-white hover:bg-orange-50 text-stone-700 hover:text-orange-700 rounded border border-stone-300 shadow-2xs mb-2 transition cursor-pointer"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+        <div className="p-1 rounded bg-orange-100 text-orange-700 mb-2 border border-orange-200">
+          <Layers className="w-3.5 h-3.5" />
+        </div>
+        <div className="writing-vertical-rl text-[11px] font-bold text-stone-700 tracking-widest my-1 flex items-center">
+          <span>階層１</span>
+        </div>
+        <div className="mt-auto flex flex-col items-center space-y-1 text-stone-500">
+          <span className="text-[10px] bg-stone-300 px-1 py-0.5 rounded-full font-mono font-bold" title={`${tabFolders.length} フォルダ`}>
+            {tabFolders.length}
+          </span>
+          <span className="text-[9px] text-stone-400">展開</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div id="tab-list-hierarchy-panel" className="w-60 bg-stone-200 border-r border-stone-300 flex flex-col text-xs shrink-0 select-none">
@@ -347,11 +405,23 @@ export const TabListPanel: React.FC<TabListPanelProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-1.5 font-bold text-stone-800">
             <Layers className="w-4 h-4 text-orange-700" />
-            <span className="text-xs">タブ一覧</span>
+            <span className="text-xs">階層1</span>
           </div>
-          <span className="text-[10px] bg-orange-100 text-blue-700 font-semibold px-1.5 py-0.2 rounded border border-orange-300">
-            フォルダ階層管理
-          </span>
+          <div className="flex items-center space-x-1">
+            <span className="text-[10px] bg-orange-100 text-blue-700 font-semibold px-1.5 py-0.2 rounded border border-orange-300">
+              タブ・フォルダ管理
+            </span>
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                title="階層1のウィンドウを折りたたむ"
+                className="p-1 hover:bg-stone-400/50 rounded text-stone-600 hover:text-stone-900 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Action Toolbar */}

@@ -24,14 +24,12 @@ interface UserManualModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenSpecs?: () => void;
-  onOpenFlaskCode?: () => void;
 }
 
 export const UserManualModal: React.FC<UserManualModalProps> = ({
   isOpen,
   onClose,
   onOpenSpecs,
-  onOpenFlaskCode,
 }) => {
   const [activeSectionId, setActiveSectionId] = useState(USER_MANUAL_SECTIONS[0].id);
   const [copied, setCopied] = useState(false);
@@ -388,21 +386,6 @@ export const UserManualModal: React.FC<UserManualModalProps> = ({
                   <span className="flex items-center space-x-1.5">
                     <BookOpen className="w-3.5 h-3.5 text-blue-600" />
                     <span>仕様書・設計書を見る</span>
-                  </span>
-                  <ExternalLink className="w-3 h-3 text-slate-400" />
-                </button>
-              )}
-              {onOpenFlaskCode && (
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenFlaskCode();
-                  }}
-                  className="w-full flex items-center justify-between px-2.5 py-1.5 rounded bg-white hover:bg-emerald-50 border border-slate-300 text-slate-700 text-[11px] transition"
-                >
-                  <span className="flex items-center space-x-1.5">
-                    <Server className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Flask ソースコードを見る</span>
                   </span>
                   <ExternalLink className="w-3 h-3 text-slate-400" />
                 </button>

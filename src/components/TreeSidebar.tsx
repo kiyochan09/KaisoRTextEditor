@@ -4,7 +4,7 @@ import {
   ChevronRight, ChevronDown, Folder, FileText, Table, Code, 
   Bookmark, Lock, Plus, Trash2, Edit3, Search,
   GripVertical, ArrowUp, ArrowDown, CornerLeftUp, CornerDownRight,
-  FolderPlus, ArrowLeft, Star
+  FolderPlus, ArrowLeft, Star, Layers
 } from 'lucide-react';
 
 export type DropPosition = 'before' | 'inside' | 'after' | 'root' | 'promote';
@@ -28,12 +28,16 @@ interface TreeSidebarProps {
   onToggleBookmark?: (nodeId: string) => void;
   isBookmarkFiltered?: boolean;
   onToggleBookmarkFilter?: () => void;
+  activeTabFolderName?: string;
+  isHierarchy1Collapsed?: boolean;
+  onToggleHierarchy1?: () => void;
 }
 
 export const TreeSidebar: React.FC<TreeSidebarProps> = ({
   nodes,
   rootNodeIds,
   activeNodeId,
+  activeTabFolderName,
   onSelectNode,
   onAddChildNode,
   onDeleteNode,
@@ -49,10 +53,17 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
   onToggleBookmark,
   isBookmarkFiltered,
   onToggleBookmarkFilter,
+  isHierarchy1Collapsed,
+  onToggleHierarchy1,
 }) => {
   const [expandedNodeIds, setExpandedNodeIds] = useState<Set<string>>(
     new Set(Object.keys(nodes))
   );
+
+  React.useEffect(() => {
+    setExpandedNodeIds(new Set(Object.keys(nodes)));
+  }, [rootNodeIds]);
+
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [treeSearchQuery, setTreeSearchQuery] = useState('');
@@ -98,9 +109,9 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
   const getNodeIcon = (node: TreeNode) => {
     if (node.isEncrypted) return <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />;
     
-    // Only display folder icon if the node currently has child notes
+    // Display folder icon if the node is marked as folder or currently has child notes
     const hasChildren = Boolean(node.children && node.children.length > 0);
-    if (hasChildren) {
+    if (node.isFolder || hasChildren) {
       return <Folder className="w-3.5 h-3.5 text-amber-500 fill-amber-100 shrink-0" />;
     }
 
@@ -472,10 +483,23 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
       {/* Tree header toolbar */}
       <div className="p-2 bg-stone-100 border-b border-stone-300 flex flex-col space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider flex items-center space-x-1">
-            <Folder className="w-3.5 h-3.5 text-blue-600" />
-            <span>階層ツリー & 整理</span>
-          </span>
+          <div className="flex items-center space-x-1.5">
+            <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider flex items-center space-x-1">
+              <Folder className="w-3.5 h-3.5 text-blue-600" />
+              <span>階層2</span>
+            </span>
+            {isHierarchy1Collapsed && onToggleHierarchy1 && (
+              <button
+                type="button"
+                onClick={onToggleHierarchy1}
+                title="折りたたまれた階層1を展開する"
+                className="px-1.5 py-0.5 text-[10px] bg-orange-50 hover:bg-orange-100 text-orange-700 font-semibold rounded border border-orange-300 shadow-2xs flex items-center space-x-0.5 transition cursor-pointer"
+              >
+                <Layers className="w-3 h-3 text-orange-600" />
+                <span>階層1展開</span>
+              </button>
+            )}
+          </div>
           <div className="flex items-center space-x-1">
             <button
               onClick={() => setExpandedNodeIds(new Set(Object.keys(nodes)))}
@@ -519,6 +543,16 @@ export const TreeSidebar: React.FC<TreeSidebarProps> = ({
         {/* Quick action bar for active node */}
         {activeNode && (
           <div className="flex flex-col bg-white border border-stone-300 rounded p-1.5 text-[11px] shadow-2xs space-y-1">
+            {/* 選択されている階層1のフォルダ名 */}
+            {activeTabFolderName && (
+              <div className="flex items-center space-x-1 text-stone-600 text-[10px] pb-1 border-b border-stone-200/70 truncate">
+                <Folder className="w-3 h-3 text-amber-600 shrink-0" />
+                <span className="text-stone-400 font-medium shrink-0">階層1:</span>
+                <span className="font-semibold text-stone-700 truncate" title={`階層1フォルダ: ${activeTabFolderName}`}>
+                  {activeTabFolderName}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="truncate text-stone-700 text-[11px] font-semibold max-w-[140px]" title={activeNode.title}>
                 選択: {activeNode.title}

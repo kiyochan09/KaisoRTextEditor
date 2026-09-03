@@ -190,9 +190,11 @@ export interface FigureCaption {
   createdAt: string; // ISO date string
 }
 
-export type ResourcePanelTab = '検索' | 'タグ' | 'ブックマーク' | '履歴' | 'メモ' | '図表';
+export type ResourcePanelTab = '注釈' | '検索' | 'タグ' | 'ブックマーク' | '履歴' | 'メモ' | '図表';
 
 export type BodyWrapMode = 'full' | 'characters' | 'pixels' | 'none';
+
+export type RibbonTab = 'home' | 'insert' | 'layout' | 'tools' | 'help';
 
 export interface SystemSettings {
   fontFamily: string;
@@ -203,5 +205,8 @@ export interface SystemSettings {
   contentAlignment?: 'left' | 'center';
   pagePadding?: 'compact' | 'normal' | 'spacious';
   showRuler?: boolean;
+  tabPosition?: 'top' | 'bottom';
+  ribbonMinimized?: boolean;
 }
+
 

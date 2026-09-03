@@ -1,12 +1,14 @@
 import localforage from 'localforage';
+import JSZip from 'jszip';
 import React, { useState, useRef, useEffect } from 'react';
-import { Notebook, TreeNode, NoteType, TagItem, SpreadsheetData, BookmarkItem, DatabaseProfile, TextFormatState, TabFolder, TextStylePreset, StyleCategory, SystemSettings, SentenceBookmark, FigureCaption } from './types';
+import { Notebook, TreeNode, NoteType, TagItem, SpreadsheetData, BookmarkItem, DatabaseProfile, TextFormatState, TabFolder, TextStylePreset, StyleCategory, SystemSettings, SentenceBookmark, FigureCaption, RibbonTab } from './types';
 import { INITIAL_NOTEBOOKS, INITIAL_NODES, INITIAL_TAGS, INITIAL_TAB_FOLDERS, INITIAL_SENTENCE_BOOKMARKS } from './data/initialData';
 import { INITIAL_CHARACTER_STYLES, INITIAL_PARAGRAPH_STYLES } from './data/initialStyles';
 import { DEFAULT_SYSTEM_SETTINGS } from './data/initialSettings';
 
 // UI Components
 import { TopMenuBar } from './components/TopMenuBar';
+import { RibbonBar } from './components/RibbonBar';
 import { NotebookTabBar } from './components/NotebookTabBar';
 import { TabListPanel } from './components/TabListPanel';
 import { TreeSidebar } from './components/TreeSidebar';
@@ -20,7 +22,6 @@ import { EncryptedNoteEditor } from './components/EncryptedNoteEditor';
 import { ResourcePanel, ResourcePanelTab } from './components/ResourcePanel';
 import { StatusBar } from './components/StatusBar';
 import { SpecsDocModal } from './components/SpecsDocModal';
-import { FlaskCodeViewerModal } from './components/FlaskCodeViewerModal';
 import { UserManualModal } from './components/UserManualModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { RestoreModal } from './components/RestoreModal';
@@ -36,8 +37,10 @@ import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { DocxImportModal } from './components/DocxImportModal';
 import { SystemOptionsModal } from './components/SystemOptionsModal';
 import { ErrorLogModal } from './components/ErrorLogModal';
+import { GitPushModal } from './components/GitPushModal';
 import { ErrorToast } from './components/ErrorToast';
 import { logSuccess, logInfo, logError } from './utils/errorLog';
+import { exportDataOnlyZip } from './utils/zipExporter';
 import { DocxImportPreviewResult, convertPreviewToAppNodes } from './utils/docxImporter';
 import { createFootnoteHtml, renumberFootnotes } from './utils/footnoteUtils';
 import { createTextboxHtml, TEXTBOX_PRESETS } from './utils/textboxUtils';
@@ -49,6 +52,14 @@ import {
   applyExactFontFamily,
   applyExactFontSize
 } from './utils/formatUtils';
+
+// Pure Single-Storage: Explicitly enforce browser IndexedDB only (no localStorage fallback/duplication)
+localforage.config({
+  name: 'KaisoRTextEditor',
+  storeName: 'app_databases',
+  description: 'Pure Single-Storage IndexedDB for KaisoRTextEditor',
+  driver: [localforage.INDEXEDDB],
+});
 
 const INITIAL_DEMO_DB: DatabaseProfile = {
   id: 'demo',
@@ -76,15 +87,29 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   const currentDb = databases.find((d) => d.id === activeDatabaseId) || databases[0] || INITIAL_DEMO_DB;
 
   // Tab Folders (階層管理されたタブフォルダ群)
-  const [tabFolders, setTabFolders] = useState<TabFolder[]>(
-    currentDb.tabFolders || INITIAL_TAB_FOLDERS
-  );
+  const [tabFolders, setTabFolders] = useState<TabFolder[]>(() => {
+    const folders = currentDb.tabFolders;
+    if (folders === undefined) {
+      return currentDb.isDemo ? INITIAL_TAB_FOLDERS : [];
+    }
+    // Auto-heal if a non-demo database accidentally inherited demo folders
+    if (!currentDb.isDemo && folders.length > 0) {
+      const demoFolderIds = new Set(INITIAL_TAB_FOLDERS.map((f) => f.id));
+      const nbFolderIds = new Set((currentDb.notebooks || []).map((nb) => nb.folderId).filter(Boolean));
+      const hasAnyNbInDemoFolders = [...demoFolderIds].some((id) => nbFolderIds.has(id));
+      const allAreDemoFolders = folders.every((f) => demoFolderIds.has(f.id));
+      if (allAreDemoFolders && !hasAnyNbInDemoFolders) {
+        return [];
+      }
+    }
+    return folders;
+  });
   // Active Tab Folder (currently selected folder in タブ一覧)
   const [activeTabFolderId, setActiveTabFolderId] = useState<string | null>(() => {
     const activeNb = (currentDb.notebooks || INITIAL_NOTEBOOKS).find(
       (nb) => nb.id === (currentDb.activeNotebookId || 'recipes')
     );
-    return activeNb?.folderId || 'tf-lifestyle';
+    return activeNb?.folderId || (currentDb.isDemo ? 'tf-lifestyle' : null);
   });
 
   // Active Database's specific content states
@@ -92,6 +117,9 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   const [activeNotebookId, setActiveNotebookId] = useState<string>(
     currentDb.activeNotebookId || currentDb.notebooks[0]?.id || 'recipes'
   );
+  const [openNotebookIds, setOpenNotebookIds] = useState<string[]>(() => [
+    currentDb.activeNotebookId || currentDb.notebooks[0]?.id || 'recipes'
+  ]);
   const [nodes, setNodes] = useState<Record<string, TreeNode>>(currentDb.nodes || INITIAL_NODES);
   const [activeNodeId, setActiveNodeId] = useState<string>(
     currentDb.activeNodeId || Object.keys(currentDb.nodes || {})[0] || 'rec-vegetable'
@@ -114,13 +142,13 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   ]);
 
   const [showBirdEyeFolders, setShowBirdEyeFolders] = useState<boolean>(true);
+  const [isHierarchy1Collapsed, setIsHierarchy1Collapsed] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [activeCellCoord, setActiveCellCoord] = useState<string>('A2');
 
   // Modals
   const [isManualOpen, setIsManualOpen] = useState<boolean>(false);
   const [isSpecsOpen, setIsSpecsOpen] = useState<boolean>(false);
-  const [isFlaskCodeOpen, setIsFlaskCodeOpen] = useState<boolean>(false);
   const [isCreateDbOpen, setIsCreateDbOpen] = useState<boolean>(false);
   const [isDbManagerOpen, setIsDbManagerOpen] = useState<boolean>(false);
   const [isInsertFootnoteOpen, setIsInsertFootnoteOpen] = useState<boolean>(false);
@@ -135,6 +163,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   const [savedEditorRangeForImage, setSavedEditorRangeForImage] = useState<Range | null>(null);
   const [isDocxImportOpen, setIsDocxImportOpen] = useState<boolean>(false);
   const [isErrorLogOpen, setIsErrorLogOpen] = useState<boolean>(false);
+  const [isGitPushModalOpen, setIsGitPushModalOpen] = useState<boolean>(false);
 
   // Search & Replace State (タブ内検索・置換 & DB全体検索)
   const [isFindBarOpen, setIsFindBarOpen] = useState<boolean>(false);
@@ -209,11 +238,17 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   const [defaultStyleCategory, setDefaultStyleCategory] = useState<StyleCategory>('character');
 
   // System-wide display & typography options (フォント、フォントサイズ、本文折り返し位置)
+  const [activeRibbonTab, setActiveRibbonTab] = useState<RibbonTab>('home');
   const [systemSettings, setSystemSettings] = useState<SystemSettings>(() => {
     try {
       const saved = localStorage.getItem('hierarchical_system_settings');
       if (saved) {
-        return { ...DEFAULT_SYSTEM_SETTINGS, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        return { 
+          ...DEFAULT_SYSTEM_SETTINGS, 
+          ...parsed,
+          tabPosition: parsed.tabPosition || 'bottom',
+        };
       }
     } catch {
       // ignore
@@ -229,6 +264,30 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     } catch {
       // ignore
     }
+  };
+
+  const handleToggleRibbonMinimized = () => {
+    setSystemSettings((prev) => {
+      const updated = { ...prev, ribbonMinimized: !prev.ribbonMinimized };
+      try {
+        localStorage.setItem('hierarchical_system_settings', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  };
+
+  const handleUpdateSettingsPartial = (newPartial: Partial<SystemSettings>) => {
+    setSystemSettings((prev) => {
+      const updated = { ...prev, ...newPartial };
+      try {
+        localStorage.setItem('hierarchical_system_settings', JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
   };
 
   // Persist styles to localStorage
@@ -248,8 +307,17 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     }
   }, [paragraphStyles]);
 
+  const currentDbIdRef = useRef<string>(activeDatabaseId);
+
   // Sync active database content to databases collection and localStorage
   useEffect(() => {
+    // If activeDatabaseId just changed via database switching, avoid saving stale states
+    if (currentDbIdRef.current !== activeDatabaseId) {
+      currentDbIdRef.current = activeDatabaseId;
+      localforage.setItem('hierarchical_active_db_id', activeDatabaseId);
+      return;
+    }
+
     setDatabases((prevDbs) => {
       const next = prevDbs.map((db) => {
         if (db.id === activeDatabaseId) {
@@ -275,26 +343,81 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     localforage.setItem('hierarchical_active_db_id', activeDatabaseId);
   }, [tabFolders, notebooks, nodes, tags, sentenceBookmarks, figureCaptions, activeNotebookId, activeNodeId, activeDatabaseId]);
 
+  // Keep activeTabFolderId in sync with current tabFolders
+  useEffect(() => {
+    if (activeTabFolderId !== null && !tabFolders.some((f) => f.id === activeTabFolderId)) {
+      setActiveTabFolderId(tabFolders[0]?.id || null);
+    }
+  }, [tabFolders, activeTabFolderId]);
+
   // Handle switching active database
   const handleSelectDatabase = (dbId: string) => {
+    if (dbId === activeDatabaseId) return;
     const targetDb = databases.find((d) => d.id === dbId);
     if (!targetDb) return;
 
+    // 1. Immediately persist current database's state so no unsaved changes are lost
+    const updatedDbs = databases.map((db) => {
+      if (db.id === activeDatabaseId) {
+        return {
+          ...db,
+          tabFolders,
+          notebooks,
+          nodes,
+          tags,
+          sentenceBookmarks,
+          figureCaptions,
+          activeNotebookId,
+          activeNodeId,
+          updatedAt: new Date().toISOString().split('T')[0],
+        };
+      }
+      return db;
+    });
+    setDatabases(updatedDbs);
+    localforage.setItem('hierarchical_databases', updatedDbs);
+
+    // 2. Resolve fresh target database
+    const freshTargetDb = updatedDbs.find((d) => d.id === dbId) || targetDb;
+
+    let targetTabFolders = freshTargetDb.tabFolders;
+    if (targetTabFolders === undefined) {
+      targetTabFolders = freshTargetDb.isDemo ? INITIAL_TAB_FOLDERS : [];
+    }
+
+    // Auto-heal if a non-demo database was contaminated with the demo folders
+    if (!freshTargetDb.isDemo && targetTabFolders.length > 0) {
+      const demoFolderIds = new Set(INITIAL_TAB_FOLDERS.map((f) => f.id));
+      const nbFolderIds = new Set((freshTargetDb.notebooks || []).map((nb) => nb.folderId).filter(Boolean));
+      const hasAnyNbInDemoFolders = [...demoFolderIds].some((id) => nbFolderIds.has(id));
+      const allAreDemoFolders = targetTabFolders.every((f) => demoFolderIds.has(f.id));
+      if (allAreDemoFolders && !hasAnyNbInDemoFolders) {
+        targetTabFolders = [];
+      }
+    }
+
+    // 3. Mark the switching ref so the auto-sync effect does not overwrite the target db with stale states
+    currentDbIdRef.current = dbId;
+
     setActiveDatabaseId(dbId);
-    setTabFolders(targetDb.tabFolders || INITIAL_TAB_FOLDERS);
-    setNotebooks(targetDb.notebooks || []);
-    setNodes(targetDb.nodes || {});
-    setTags(targetDb.tags || []);
-    setSentenceBookmarks(targetDb.sentenceBookmarks || []);
-    setFigureCaptions(targetDb.figureCaptions || []);
+    setTabFolders(targetTabFolders);
+    setNotebooks(freshTargetDb.notebooks || []);
+    setNodes(freshTargetDb.nodes || {});
+    setTags(freshTargetDb.tags || []);
+    setSentenceBookmarks(freshTargetDb.sentenceBookmarks || []);
+    setFigureCaptions(freshTargetDb.figureCaptions || []);
     
-    const nextNbId = targetDb.activeNotebookId || targetDb.notebooks[0]?.id || '';
+    const nextNbId = freshTargetDb.activeNotebookId || freshTargetDb.notebooks[0]?.id || '';
     setActiveNotebookId(nextNbId);
+    setOpenNotebookIds(nextNbId ? [nextNbId] : []);
 
-    const activeNb = (targetDb.notebooks || []).find((nb) => nb.id === nextNbId);
-    setActiveTabFolderId(activeNb?.folderId || null);
+    const activeNb = (freshTargetDb.notebooks || []).find((nb) => nb.id === nextNbId);
+    const validFolderId = activeNb?.folderId && targetTabFolders.some((f) => f.id === activeNb.folderId)
+      ? activeNb.folderId
+      : (targetTabFolders[0]?.id || null);
+    setActiveTabFolderId(validFolderId);
 
-    const nextNodeId = targetDb.activeNodeId || Object.keys(targetDb.nodes || {})[0] || '';
+    const nextNodeId = freshTargetDb.activeNodeId || Object.keys(freshTargetDb.nodes || {})[0] || '';
     setActiveNodeId(nextNodeId);
     setSelectedTagFilter(null);
   };
@@ -447,6 +570,10 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
       startNodeId = activeNodeId;
     }
 
+    const newDbTabFolders: TabFolder[] = templateType === 'copy_current' 
+      ? JSON.parse(JSON.stringify(tabFolders)) 
+      : [];
+
     const newDb: DatabaseProfile = {
       id: newDbId,
       name,
@@ -456,6 +583,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
       storageLocation: storageConfig.storageLocation,
       storageType: storageConfig.storageType,
       storagePath: storageConfig.storagePath,
+      tabFolders: newDbTabFolders,
       notebooks: newNotebooks,
       nodes: newNodes,
       tags: newTags,
@@ -472,7 +600,10 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     });
 
     // Switch to the newly created database
+    currentDbIdRef.current = newDbId;
     setActiveDatabaseId(newDbId);
+    setTabFolders(newDbTabFolders);
+    setActiveTabFolderId(null);
     setNotebooks(newNotebooks);
     setNodes(newNodes);
     setTags(newTags);
@@ -526,6 +657,90 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
       }
       return next;
     });
+  };
+
+  // Handle batch deleting databases
+  const handleBatchDeleteDatabases = (dbIds: string[]) => {
+    if (!dbIds || dbIds.length === 0) return;
+    setDatabases((prev) => {
+      let next = prev.filter((db) => !dbIds.includes(db.id));
+      if (next.length === 0) {
+        next = [{
+          id: 'demo',
+          name: 'DEMO（デモデータ）',
+          createdAt: new Date().toISOString().split('T')[0],
+          updatedAt: new Date().toISOString().split('T')[0],
+          isDemo: true,
+          tabFolders: INITIAL_TAB_FOLDERS,
+          notebooks: INITIAL_NOTEBOOKS,
+          nodes: INITIAL_NODES,
+          tags: INITIAL_TAGS,
+          sentenceBookmarks: INITIAL_SENTENCE_BOOKMARKS,
+          figureCaptions: [],
+          activeNotebookId: 'recipes',
+          activeNodeId: 'rec-vegetable',
+        }];
+      }
+      localforage.setItem('hierarchical_databases', next);
+
+      const fallback = next[0];
+      if (dbIds.includes(activeDatabaseId) || !next.some((d) => d.id === activeDatabaseId)) {
+        currentDbIdRef.current = fallback.id;
+        setActiveDatabaseId(fallback.id);
+        localforage.setItem('hierarchical_active_db_id', fallback.id);
+        setTabFolders(fallback.tabFolders || (fallback.isDemo ? INITIAL_TAB_FOLDERS : []));
+        setNotebooks(fallback.notebooks);
+        setNodes(fallback.nodes);
+        setTags(fallback.tags);
+        setSentenceBookmarks(fallback.sentenceBookmarks || []);
+        setFigureCaptions(fallback.figureCaptions || []);
+        setActiveNotebookId(fallback.activeNotebookId || fallback.notebooks[0]?.id || '');
+        setActiveNodeId(fallback.activeNodeId || Object.keys(fallback.nodes)[0] || '');
+      }
+      return next;
+    });
+  };
+
+  // Handle completely clearing all databases (reset to clean initial state)
+  const handleClearAllDatabases = () => {
+    const cleanDb: DatabaseProfile = {
+      id: 'db-' + Date.now(),
+      name: '新規データベース',
+      createdAt: new Date().toISOString().split('T')[0],
+      updatedAt: new Date().toISOString().split('T')[0],
+      isDemo: false,
+      notebooks: [
+        {
+          id: 'nb-main',
+          name: 'ノートブック 1',
+          color: '#e0f2fe',
+          bgClass: 'bg-sky-100 text-sky-900 border-sky-300',
+          borderClass: 'border-t-sky-500',
+          nodeIds: [],
+        },
+      ],
+      nodes: {},
+      tags: INITIAL_TAGS,
+      tabFolders: [],
+      sentenceBookmarks: [],
+      figureCaptions: [],
+      activeNotebookId: 'nb-main',
+      activeNodeId: null,
+    };
+
+    const next = [cleanDb];
+    setDatabases(next);
+    localforage.setItem('hierarchical_databases', next);
+    setActiveDatabaseId(cleanDb.id);
+    localforage.setItem('hierarchical_active_db_id', cleanDb.id);
+    setTabFolders([]);
+    setNotebooks(cleanDb.notebooks);
+    setNodes({});
+    setTags(INITIAL_TAGS);
+    setSentenceBookmarks([]);
+    setFigureCaptions([]);
+    setActiveNotebookId('nb-main');
+    setActiveNodeId(null);
   };
 
   // Handle resetting DEMO database to initial sample data
@@ -621,6 +836,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
   // Handle notebook tab change
   const handleSelectNotebook = (nbId: string) => {
     setActiveNotebookId(nbId);
+    setOpenNotebookIds((prev) => (prev.includes(nbId) ? prev : [...prev, nbId]));
     setNotebooks((prev) =>
       prev.map((nb) => (nb.id === nbId ? { ...nb, isHidden: false } : nb))
     );
@@ -635,7 +851,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     }
   };
 
-  // Handle Tab Folder selection in タブ一覧
+  // Handle Tab Folder selection in 階層1
   const handleSelectTabFolder = (folderId: string | null) => {
     setActiveTabFolderId(folderId);
     if (folderId !== null) {
@@ -670,10 +886,26 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     );
   };
 
-  const handleHideNotebooks = (notebookIds: string[]) => {
-    setNotebooks((prev) =>
-      prev.map((nb) => (notebookIds.includes(nb.id) ? { ...nb, isHidden: true } : nb))
-    );
+  const handleCloseNotebooks = (notebookIds: string[]) => {
+    setOpenNotebookIds((prev) => {
+      const next = prev.filter((id) => !notebookIds.includes(id));
+      return next.length > 0
+        ? next
+        : activeNotebookId && !notebookIds.includes(activeNotebookId)
+        ? [activeNotebookId]
+        : [];
+    });
+    if (notebookIds.includes(activeNotebookId)) {
+      const remainingVisible = openNotebookIds.filter(
+        (id) => !notebookIds.includes(id)
+      );
+      if (remainingVisible.length > 0) {
+        handleSelectNotebook(remainingVisible[remainingVisible.length - 1]);
+      } else {
+        const anyOther = notebooks.find((n) => !notebookIds.includes(n.id));
+        if (anyOther) handleSelectNotebook(anyOther.id);
+      }
+    }
   };
 
   const handleRenameTabFolder = (folderId: string, newName: string) => {
@@ -766,11 +998,162 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     const idsToDelete = Array.isArray(notebookIdOrIds) ? notebookIdOrIds : [notebookIdOrIds];
     if (notebooks.length <= idsToDelete.length) return;
     
-    const remaining = notebooks.filter((nb) => !idsToDelete.includes(nb.id));
+    const nbIdSet = new Set(idsToDelete);
+
+    // 1. Remove notebooks from state
+    const remaining = notebooks.filter((nb) => !nbIdSet.has(nb.id));
     setNotebooks(remaining);
+    setOpenNotebookIds((prev) => prev.filter((id) => !nbIdSet.has(id)));
+
+    // 2. Deep Cascade Delete: physically purge all nodes belonging to the deleted notebooks
+    const deletedNodeIds = new Set<string>();
+    setNodes((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((nid) => {
+        if (nbIdSet.has(next[nid].notebookId)) {
+          deletedNodeIds.add(nid);
+          delete next[nid];
+        }
+      });
+      return next;
+    });
+
+    // 3. Deep Cascade Delete: remove sentence bookmarks belonging to deleted notebooks or nodes
+    setSentenceBookmarks((prev) => prev.filter((bm) => !nbIdSet.has(bm.notebookId) && !deletedNodeIds.has(bm.nodeId)));
+
+    // 4. Deep Cascade Delete: remove figure captions
+    setFigureCaptions((prev) => prev.filter((fc) => !nbIdSet.has(fc.notebookId) && !deletedNodeIds.has(fc.nodeId)));
     
     if (idsToDelete.includes(activeNotebookId)) {
       handleSelectNotebook(remaining[0].id);
+    }
+  };
+
+  // Database Vacuum & Integrity Optimization (孤児ノード・参照残骸の消去とツリー整合性の完全修復)
+  const handleCleanAndOptimizeDatabase = async () => {
+    const currentDb = databases.find((d) => d.id === activeDatabaseId);
+    if (!currentDb) return;
+
+    const validNotebookIds = new Set(notebooks.map((nb) => nb.id));
+    const validTabFolderIds = new Set(tabFolders.map((tf) => tf.id));
+
+    let removedOrphanNodesCount = 0;
+    let fixedParentChildCount = 0;
+    let removedOrphanBookmarksCount = 0;
+    let removedOrphanCaptionsCount = 0;
+
+    // 1. 孤児ノードの完全パージとツリー整合性修復
+    const cleanedNodes: Record<string, TreeNode> = {};
+    const validNodeIds = new Set<string>();
+
+    // Pass 1: 実在するノートブックに属するノードのみを抽出
+    (Object.entries(nodes) as [string, TreeNode][]).forEach(([nid, node]) => {
+      if (!node || !validNotebookIds.has(node.notebookId)) {
+        removedOrphanNodesCount++;
+        return;
+      }
+      validNodeIds.add(nid);
+      cleanedNodes[nid] = { ...node };
+    });
+
+    // Pass 2: 親子参照（parentId / children）の整合性修復
+    Object.values(cleanedNodes).forEach((node) => {
+      if (node.parentId && !validNodeIds.has(node.parentId)) {
+        node.parentId = null;
+        fixedParentChildCount++;
+      }
+      if (node.children) {
+        const validChildren = node.children.filter((cid) => validNodeIds.has(cid));
+        if (validChildren.length !== node.children.length) {
+          node.children = validChildren;
+          fixedParentChildCount++;
+        }
+        node.isFolder = node.children.length > 0;
+      }
+    });
+
+    // Pass 3: 親ノードのchildren配列に自身が含まれていることを担保
+    Object.values(cleanedNodes).forEach((node) => {
+      if (node.parentId && cleanedNodes[node.parentId]) {
+        const parent = cleanedNodes[node.parentId];
+        if (!parent.children) parent.children = [];
+        if (!parent.children.includes(node.id)) {
+          parent.children.push(node.id);
+          parent.isFolder = true;
+          fixedParentChildCount++;
+        }
+      }
+    });
+
+    // 2. 実体のないノードを指している文章ブックマーク残骸の消去
+    const cleanedBookmarks = (sentenceBookmarks || []).filter((bm) => {
+      const isValid = validNodeIds.has(bm.nodeId) && validNotebookIds.has(bm.notebookId);
+      if (!isValid) removedOrphanBookmarksCount++;
+      return isValid;
+    });
+
+    // 3. 実体のないノードを指している図表キャプション残骸の消去
+    const cleanedCaptions = (figureCaptions || []).filter((fc) => {
+      const isValid = validNodeIds.has(fc.nodeId) && validNotebookIds.has(fc.notebookId);
+      if (!isValid) removedOrphanCaptionsCount++;
+      return isValid;
+    });
+
+    // 4. ノートブックのnodeIdsおよびfolderIdの整合性修復
+    const cleanedNotebooks = notebooks.map((nb) => {
+      const validNids = (nb.nodeIds || []).filter((nid) => validNodeIds.has(nid));
+      const validFid = nb.folderId && validTabFolderIds.has(nb.folderId) ? nb.folderId : null;
+      return {
+        ...nb,
+        folderId: validFid,
+        nodeIds: validNids,
+      };
+    });
+
+    // 5. 状態へ反映
+    setNodes(cleanedNodes);
+    setSentenceBookmarks(cleanedBookmarks);
+    setFigureCaptions(cleanedCaptions);
+    setNotebooks(cleanedNotebooks);
+
+    // 6. IndexedDBへ即時物理コミット（Vacuum）
+    const updatedDbs = databases.map((db) => {
+      if (db.id === activeDatabaseId) {
+        return {
+          ...db,
+          tabFolders,
+          notebooks: cleanedNotebooks,
+          nodes: cleanedNodes,
+          tags,
+          sentenceBookmarks: cleanedBookmarks,
+          figureCaptions: cleanedCaptions,
+          updatedAt: new Date().toISOString().split('T')[0],
+        };
+      }
+      return db;
+    });
+
+    setDatabases(updatedDbs);
+    await localforage.setItem('hierarchical_databases', updatedDbs);
+
+    // 7. 結果報告
+    const totalIssues = removedOrphanNodesCount + fixedParentChildCount + removedOrphanBookmarksCount + removedOrphanCaptionsCount;
+    if (totalIssues > 0) {
+      alert(
+        `【データベース最適化＆クリーン完了】\n\n` +
+        `・削除された孤児ノード（残留データ）: ${removedOrphanNodesCount}件\n` +
+        `・修復・同期されたツリー構造: ${fixedParentChildCount}件\n` +
+        `・消去されたブックマーク残骸: ${removedOrphanBookmarksCount}件\n` +
+        `・消去された図表キャプション残骸: ${removedOrphanCaptionsCount}件\n\n` +
+        `データベース「${currentDb.name}」の整合性が完全に修復され、IndexedDBへ物理コミットされました。`
+      );
+    } else {
+      alert(
+        `【データベース完全診断】\n\n` +
+        `データベース「${currentDb.name}」には孤児データや参照残骸などの不整合は一切ありません。\n` +
+        `すべてのデータ構造は100%健全でクリーンな状態です。\n` +
+        `（IndexedDBへの物理コミットを完了しました）`
+      );
     }
   };
 
@@ -898,6 +1281,10 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
 
       return next;
     });
+
+    // Cascade delete: remove sentence bookmarks and captions belonging to deleted nodes
+    setSentenceBookmarks((prev) => prev.filter((bm) => !descendantSet.has(bm.nodeId)));
+    setFigureCaptions((prev) => prev.filter((fc) => !descendantSet.has(fc.nodeId)));
 
     // Update notebook nodeIds if tracked
     setNotebooks((prev) =>
@@ -1798,6 +2185,13 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     setParagraphStyles((prev) => prev.filter((s) => s.id !== styleId));
   };
 
+  const handleResetDefaultStyles = () => {
+    if (window.confirm('登録されているスタイルを初期状態（デフォルト）に戻しますか？')) {
+      setCharacterStyles(INITIAL_CHARACTER_STYLES);
+      setParagraphStyles(INITIAL_PARAGRAPH_STYLES);
+    }
+  };
+
   const handleToggleHideStyle = (styleId: string) => {
     setCharacterStyles((prev) => prev.map(s => s.id === styleId ? { ...s, isHidden: !s.isHidden } : s));
     setParagraphStyles((prev) => prev.map(s => s.id === styleId ? { ...s, isHidden: !s.isHidden } : s));
@@ -2163,22 +2557,37 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     // 1. Append new notebook tab
     setNotebooks((prev) => [...prev, notebook]);
 
+    // Ensure newly imported notebook is open in the top tab bar
+    setOpenNotebookIds((prev) => (prev.includes(newNotebookId) ? prev : [...prev, newNotebookId]));
+
     // 2. Append all generated tree nodes
     setNodes((prev) => ({
       ...prev,
       ...nodesToInsert,
     }));
 
-    // 3. Switch active tab folder and active notebook, then open the first root node
+    // 3. Switch active tab folder and active notebook, then open first note with content/footnotes
     setActiveTabFolderId(finalFolderId);
     setActiveNotebookId(newNotebookId);
     if (rootNodeIds.length > 0) {
-      setActiveNodeId(rootNodeIds[0]);
+      let targetNodeId = rootNodeIds[0];
+      const firstNode = nodesToInsert[targetNodeId];
+      if (firstNode && firstNode.isFolder && firstNode.children && firstNode.children.length > 0) {
+        // If top-level node is a folder title, select first child with text or footnotes
+        const childWithContent = firstNode.children.find((cid) => {
+          const c = nodesToInsert[cid];
+          return c && (c.content?.richHtml?.length || 0) > 30;
+        });
+        if (childWithContent) {
+          targetNodeId = childWithContent;
+        }
+      }
+      setActiveNodeId(targetNodeId);
     }
 
-    // 4. Save to databases state
-    setDatabases((prev) =>
-      prev.map((db) => {
+    // 4. Save to databases state with immediate physical storage commit
+    setDatabases((prev) => {
+      const next = prev.map((db) => {
         if (db.id === activeDatabaseId) {
           const updatedFolders = newFolderName && finalFolderId
             ? [...(db.tabFolders || tabFolders), { id: finalFolderId, name: newFolderName, parentId: null }]
@@ -2195,8 +2604,92 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
           };
         }
         return db;
-      })
-    );
+      });
+
+      // Single Storage: Write immediately and exclusively to IndexedDB
+      localforage.setItem('hierarchical_databases', next);
+      return next;
+    });
+  };
+
+  // DOCX Batch Import Handler (複数DOCXファイルを指定フォルダ配下に一括でノートブック・階層ノート展開)
+  const handleConfirmBatchDocxImport = (
+    previewResults: DocxImportPreviewResult[],
+    targetFolderId: string | null,
+    newFolderName?: string
+  ) => {
+    let finalFolderId = targetFolderId;
+
+    if (newFolderName) {
+      finalFolderId = `tf-${Date.now()}`;
+      const newFolder: TabFolder = {
+        id: finalFolderId,
+        name: newFolderName,
+        parentId: null,
+      };
+      setTabFolders((prev) => [...prev, newFolder]);
+    }
+
+    const newNotebooks: Notebook[] = [];
+    const newNodesToInsert: Record<string, TreeNode> = {};
+    const newNotebookIds: string[] = [];
+
+    previewResults.forEach((previewResult, idx) => {
+      const newNotebookId = `nb-docx-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`;
+      const { notebook, nodesToInsert } = convertPreviewToAppNodes(
+        previewResult,
+        newNotebookId
+      );
+      notebook.folderId = finalFolderId;
+      newNotebooks.push(notebook);
+      newNotebookIds.push(newNotebookId);
+      Object.assign(newNodesToInsert, nodesToInsert);
+    });
+
+    setNotebooks((prev) => [...prev, ...newNotebooks]);
+    setOpenNotebookIds((prev) => {
+      const set = new Set([...prev, ...newNotebookIds]);
+      return Array.from(set);
+    });
+    setNodes((prev) => ({
+      ...prev,
+      ...newNodesToInsert,
+    }));
+
+    if (finalFolderId) {
+      setActiveTabFolderId(finalFolderId);
+    }
+    if (newNotebookIds.length > 0) {
+      setActiveNotebookId(newNotebookIds[0]);
+      const firstNb = newNotebooks[0];
+      if (firstNb.nodeIds && firstNb.nodeIds.length > 0) {
+        setActiveNodeId(firstNb.nodeIds[0]);
+      }
+    }
+
+    // Single Storage: Immediate physical commit exclusively to IndexedDB
+    setDatabases((prev) => {
+      const next = prev.map((db) => {
+        if (db.id === activeDatabaseId) {
+          const updatedFolders = newFolderName && finalFolderId
+            ? [...(db.tabFolders || tabFolders), { id: finalFolderId, name: newFolderName, parentId: null }]
+            : (db.tabFolders || tabFolders);
+
+          return {
+            ...db,
+            tabFolders: updatedFolders,
+            notebooks: [...(db.notebooks || []), ...newNotebooks],
+            nodes: { ...(db.nodes || {}), ...newNodesToInsert },
+            activeNotebookId: newNotebookIds[0] || db.activeNotebookId,
+            updatedAt: new Date().toISOString().split('T')[0],
+          };
+        }
+        return db;
+      });
+
+      localforage.setItem('hierarchical_databases', next);
+      return next;
+    });
   };
 
   const handleOpenInsertBookmarkCard = () => {
@@ -2392,7 +2885,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             isDemo: false,
-            storageLocation: 'ブラウザ内蔵セキュア領域 (IndexedDB / LocalStorage)',
+            storageLocation: 'ブラウザ内蔵セキュアデータベース (IndexedDB)',
             storageType: 'browser_storage',
             notebooks: data.notebooks,
             nodes: data.nodes,
@@ -2464,6 +2957,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     setNodes((prev) => ({ ...prev, [rootNodeId]: newRootNode }));
     setNotebooks((prev) => [...prev, newNb]);
     setActiveNotebookId(newNbId);
+    setOpenNotebookIds((prev) => [...prev, newNbId]);
     setActiveNodeId(rootNodeId);
   };
 
@@ -2608,78 +3102,703 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
     reader.readAsText(file);
   };
 
+  const handleExportDataOnlyZip = async () => {
+    try {
+      await exportDataOnlyZip(databases);
+    } catch (err: any) {
+      console.error('Failed to export data only zip:', err);
+      alert('データ保存（ZIP）に失敗しました: ' + err.message);
+    }
+  };
+
+  const handleImportDataOnlyZip = async (file: File) => {
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const sanitize = (name: string) => (name || 'Untitled').replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').trim();
+
+      // Pre-read any .kaiso_tab_meta.json files per database
+      const dbMetaMap = new Map<string, {
+        tabFolders: TabFolder[];
+        notebooks: Array<{
+          id: string;
+          name: string;
+          folderId: string | null;
+          color?: string;
+          bgClass?: string;
+          borderClass?: string;
+          description?: string;
+        }>;
+        tags?: any[];
+        sentenceBookmarks?: any[];
+        figureCaptions?: any[];
+      }>();
+
+      for (const rawPath of Object.keys(zip.files)) {
+        if (rawPath.endsWith('.kaiso_tab_meta.json')) {
+          try {
+            const content = await zip.files[rawPath].async('string');
+            const parsed = JSON.parse(content);
+            const dbName = rawPath.replace(/\\/g, '/').split('/')[0];
+            dbMetaMap.set(dbName, parsed);
+          } catch (e) {}
+        }
+      }
+
+      const dbMap = new Map<string, {
+        name: string;
+        tabFolders: TabFolder[];
+        notebookMap: Map<string, Notebook>;
+        folderMap: Map<string, string>;
+        nodes: Record<string, TreeNode>;
+        sentenceBookmarks: any[];
+        tags: any[];
+        figureCaptions: any[];
+      }>();
+
+      const getDb = (dbName: string) => {
+        if (!dbMap.has(dbName)) {
+          const meta = dbMetaMap.get(dbName);
+          dbMap.set(dbName, {
+            name: dbName,
+            tabFolders: meta?.tabFolders ? [...meta.tabFolders] : [],
+            notebookMap: new Map(),
+            folderMap: new Map(),
+            nodes: {},
+            sentenceBookmarks: meta?.sentenceBookmarks ? [...meta.sentenceBookmarks] : [],
+            tags: meta?.tags ? [...meta.tags] : [...INITIAL_TAGS],
+            figureCaptions: meta?.figureCaptions ? [...meta.figureCaptions] : [],
+          });
+        }
+        return dbMap.get(dbName)!;
+      };
+
+      const getNotebook = (dbEntry: ReturnType<typeof getDb>, nbName: string, folderId: string | null) => {
+        if (!dbEntry.notebookMap.has(nbName)) {
+          const meta = dbMetaMap.get(dbEntry.name);
+          const nbMeta = meta?.notebooks.find(n => n.name === nbName || sanitize(n.name) === nbName);
+          const nbId = nbMeta?.id || ('nb-' + Math.random().toString(36).substr(2, 9));
+          dbEntry.notebookMap.set(nbName, {
+            id: nbId,
+            name: nbName,
+            color: nbMeta?.color || '#3b82f6',
+            bgClass: nbMeta?.bgClass || 'bg-blue-500',
+            borderClass: nbMeta?.borderClass || 'border-blue-600',
+            description: nbMeta?.description || '',
+            folderId: nbMeta !== undefined ? nbMeta.folderId : folderId,
+            nodeIds: [],
+          });
+        }
+        return dbEntry.notebookMap.get(nbName)!;
+      };
+
+      // Markdown + Rich HTML Lossless Parser
+      const parseMarkdownContent = (rawText: string): { 
+        richHtml: string; 
+        frontMatter?: any; 
+        tags?: string[]; 
+        bookmarks?: any[];
+      } => {
+        if (!rawText) return { richHtml: '<p></p>' };
+        
+        let frontMatter: any = null;
+        let body = rawText;
+
+        // 1. Extract YAML / JSON front-matter between --- markers
+        const fmMatch = rawText.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n*([\s\S]*)$/);
+        if (fmMatch) {
+          try {
+            frontMatter = JSON.parse(fmMatch[1]);
+            body = fmMatch[2];
+          } catch (e) {
+            try {
+              const lines = fmMatch[1].split(/\r?\n/);
+              const obj: any = {};
+              lines.forEach((l) => {
+                const parts = l.split(':');
+                if (parts.length >= 2) {
+                  const k = parts[0].trim();
+                  const v = parts.slice(1).join(':').trim().replace(/^["']|["']$/g, '');
+                  obj[k] = v;
+                }
+              });
+              frontMatter = obj;
+              body = fmMatch[2];
+            } catch (e2) {}
+          }
+        }
+
+        // 2. Extract standard markdown footnote definitions: [^1]: text
+        const fnMap = new Map<string, string>();
+        const lines = body.split(/\r?\n/);
+        const nonFnLines: string[] = [];
+        let insideFootnoteSection = false;
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed === '---' || trimmed === '### 脚注・注釈' || trimmed === '## 脚注') {
+            insideFootnoteSection = true;
+            continue;
+          }
+          const fnDefMatch = trimmed.match(/^\[\^(\d+)\]:\s*(.+)$/);
+          if (fnDefMatch) {
+            fnMap.set(fnDefMatch[1], fnDefMatch[2]);
+            continue;
+          }
+          if (!insideFootnoteSection) {
+            nonFnLines.push(line);
+          }
+        }
+
+        const cleanBody = nonFnLines.join('\n').trim();
+
+        // 3. Convert markdown body to richHtml:
+        let htmlResult = '';
+        const hasHtmlTags = /<([a-z]+[1-6]?)\b[^>]*>/i.test(cleanBody);
+
+        if (hasHtmlTags) {
+          htmlResult = cleanBody;
+        } else {
+          const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          const bodyLines = cleanBody.split(/\r?\n/);
+          const parts: string[] = [];
+          let inList = false;
+          for (const bl of bodyLines) {
+            const tr = bl.trim();
+            if (!tr) {
+              if (inList) { parts.push('</ul>'); inList = false; }
+              continue;
+            }
+            if (tr.startsWith('# ')) {
+              if (inList) { parts.push('</ul>'); inList = false; }
+              parts.push(`<h1>${escape(tr.slice(2))}</h1>`);
+            } else if (tr.startsWith('## ')) {
+              if (inList) { parts.push('</ul>'); inList = false; }
+              parts.push(`<h2>${escape(tr.slice(3))}</h2>`);
+            } else if (tr.startsWith('### ')) {
+              if (inList) { parts.push('</ul>'); inList = false; }
+              parts.push(`<h3>${escape(tr.slice(4))}</h3>`);
+            } else if (tr.startsWith('- ')) {
+              if (!inList) { parts.push('<ul>'); inList = true; }
+              parts.push(`<li>${escape(tr.slice(2))}</li>`);
+            } else {
+              if (inList) { parts.push('</ul>'); inList = false; }
+              parts.push(`<p>${tr}</p>`);
+            }
+          }
+          if (inList) parts.push('</ul>');
+          htmlResult = parts.join('');
+        }
+
+        // 4. Link footnote references: replace [^1] with interactive footnote badges if not already sup
+        if (fnMap.size > 0) {
+          fnMap.forEach((fnText, fnNum) => {
+            const fnRegex = new RegExp(`\\[\\^${fnNum}\\]`, 'g');
+            const uid = `fn-${Date.now()}-${fnNum}-${Math.random().toString(36).substr(2, 5)}`;
+            const fnBadge = createFootnoteHtml(fnText, uid);
+            htmlResult = htmlResult.replace(fnRegex, fnBadge);
+          });
+
+          // Ensure footnotes section is present
+          if (!htmlResult.includes('footnotes-section') && !htmlResult.includes('footnotes-list')) {
+            const fnItems = Array.from(fnMap.entries())
+              .sort(([a], [b]) => parseInt(a, 10) - parseInt(b, 10))
+              .map(([num, text]) => `<li id="footnote-${num}" data-fn-id="fn-${num}"><p>${text} <a href="#footnote-ref-${num}" class="footnote-backref">↑</a></p></li>`)
+              .join('');
+            htmlResult += `<div class="footnotes-section mt-8 pt-4 border-t border-slate-300 text-xs text-slate-600"><div class="font-bold mb-2">脚注・注釈:</div><ol class="footnotes-list list-decimal pl-5 space-y-1">${fnItems}</ol></div>`;
+          }
+        }
+
+        return {
+          richHtml: htmlResult,
+          frontMatter,
+          tags: Array.isArray(frontMatter?.tags) ? frontMatter.tags : [],
+          bookmarks: Array.isArray(frontMatter?.bookmarks) ? frontMatter.bookmarks : [],
+        };
+      };
+
+      const fileNames = Object.keys(zip.files).sort((a, b) => a.localeCompare(b));
+      const demoTabFolderNames = new Set(['📘 ガイド・仕様書', '🌱 ライフ・ヘルス', '💻 開発・機能検証', '🛠️ 応用機能・ツール']);
+
+      for (const rawPath of fileNames) {
+        if (rawPath.includes('__MACOSX') || rawPath.endsWith('.DS_Store') || rawPath.endsWith('Thumbs.db') || rawPath.endsWith('.kaiso_tab_meta.json')) continue;
+        const entry = zip.files[rawPath];
+        const normalized = rawPath.replace(/\\/g, '/');
+        const segments = normalized.split('/').filter(Boolean);
+
+        if (segments.length <= 1) continue;
+
+        const dbName = segments[0];
+        const dbEntry = getDb(dbName);
+        const meta = dbMetaMap.get(dbName);
+        const isDemo = dbName.includes('DEMO');
+
+        // Determine TabFolder path, Notebook name, and Node folders
+        let tabFolderNames: string[] = [];
+        let nbName = '';
+        let nodeFolderNames: string[] = [];
+        let fileName: string | null = null;
+
+        if (meta?.notebooks && meta.notebooks.length > 0) {
+          const nbIdx = segments.findIndex((seg, idx) => idx >= 1 && meta.notebooks.some(n => n.name === seg || sanitize(n.name) === seg));
+          if (nbIdx >= 1) {
+            tabFolderNames = segments.slice(1, nbIdx);
+            nbName = segments[nbIdx];
+            nodeFolderNames = segments.slice(nbIdx + 1, entry.dir ? segments.length : segments.length - 1);
+            if (!entry.dir) fileName = segments[segments.length - 1];
+          }
+        }
+
+        if (!nbName) {
+          if (isDemo) {
+            if (segments.length >= 4 && demoTabFolderNames.has(segments[2])) {
+              tabFolderNames = [segments[1], segments[2]];
+              nbName = segments[3];
+              nodeFolderNames = segments.slice(4, entry.dir ? segments.length : segments.length - 1);
+              if (!entry.dir) fileName = segments[segments.length - 1];
+            } else if (segments.length >= 3 && demoTabFolderNames.has(segments[1])) {
+              tabFolderNames = [segments[1]];
+              nbName = segments[2];
+              nodeFolderNames = segments.slice(3, entry.dir ? segments.length : segments.length - 1);
+              if (!entry.dir) fileName = segments[segments.length - 1];
+            } else {
+              nbName = segments[1];
+              nodeFolderNames = segments.slice(2, entry.dir ? segments.length : segments.length - 1);
+              if (!entry.dir) fileName = segments[segments.length - 1];
+            }
+          } else {
+            const isRootNotebook = (segments.length === 2) || (segments.length === 3 && !entry.dir && segments[2].endsWith('.md')) || (segments[1] === 'マイノート');
+            if (isRootNotebook) {
+              tabFolderNames = [];
+              nbName = segments[1];
+              nodeFolderNames = segments.slice(2, entry.dir ? segments.length : segments.length - 1);
+              if (!entry.dir) fileName = segments[segments.length - 1];
+            } else {
+              tabFolderNames = [segments[1]];
+              if (segments.length >= 3) {
+                nbName = segments[2];
+                nodeFolderNames = segments.slice(3, entry.dir ? segments.length : segments.length - 1);
+                if (!entry.dir) fileName = segments[segments.length - 1];
+              } else {
+                let currentTabFolderId: string | null = null;
+                for (const tfName of tabFolderNames) {
+                  let foundTf = dbEntry.tabFolders.find(f => f.name === tfName && f.parentId === currentTabFolderId);
+                  if (!foundTf) {
+                    foundTf = {
+                      id: 'tf-' + Math.random().toString(36).substr(2, 9),
+                      name: tfName,
+                      parentId: currentTabFolderId,
+                      color: '#3b82f6',
+                    };
+                    dbEntry.tabFolders.push(foundTf);
+                  }
+                  currentTabFolderId = foundTf.id;
+                }
+                continue;
+              }
+            }
+          }
+        }
+
+        if (!nbName) continue;
+
+        // Reconstruct TabFolders in database
+        let currentTabFolderId: string | null = null;
+        for (const tfName of tabFolderNames) {
+          let foundTf = dbEntry.tabFolders.find(f => f.name === tfName && f.parentId === currentTabFolderId);
+          if (!foundTf) {
+            foundTf = {
+              id: 'tf-' + Math.random().toString(36).substr(2, 9),
+              name: tfName,
+              parentId: currentTabFolderId,
+              color: '#3b82f6',
+            };
+            dbEntry.tabFolders.push(foundTf);
+          }
+          currentTabFolderId = foundTf.id;
+        }
+
+        // Reconstruct Notebook
+        const notebook = getNotebook(dbEntry, nbName, currentTabFolderId);
+
+        if (entry.dir && nodeFolderNames.length === 0) {
+          continue;
+        }
+
+        // Reconstruct intermediate note folders inside notebook
+        let currentParentId: string | null = null;
+        let folderPathKey = '';
+        for (const folderName of nodeFolderNames) {
+          folderPathKey += (folderPathKey ? '/' : '') + folderName;
+          const fullKey = `${notebook.id}:${folderPathKey}`;
+
+          if (!dbEntry.folderMap.has(fullKey)) {
+            const folderId = 'fld-' + Math.random().toString(36).substr(2, 9);
+            const folderNode: TreeNode = {
+              id: folderId,
+              notebookId: notebook.id,
+              parentId: currentParentId,
+              title: folderName,
+              isFolder: true,
+              children: [],
+              type: 'rich',
+              tags: [],
+              created: new Date().toISOString().split('T')[0],
+              updated: new Date().toISOString().split('T')[0],
+              content: {},
+            };
+            dbEntry.nodes[folderId] = folderNode;
+            dbEntry.folderMap.set(fullKey, folderId);
+            
+            if (currentParentId && dbEntry.nodes[currentParentId]) {
+              const parentNode = dbEntry.nodes[currentParentId];
+              if (!parentNode.children) parentNode.children = [];
+              if (!parentNode.children.includes(folderId)) {
+                parentNode.children.push(folderId);
+              }
+              parentNode.isFolder = true;
+            } else if (currentParentId === null) {
+              if (!notebook.nodeIds.includes(folderId)) {
+                notebook.nodeIds.push(folderId);
+              }
+            }
+            currentParentId = folderId;
+          } else {
+            currentParentId = dbEntry.folderMap.get(fullKey)!;
+          }
+        }
+
+        // Process file (.md, .json, etc.)
+        if (!entry.dir && fileName) {
+          const rawText = await entry.async('string');
+
+          if (fileName === '_content.md' && currentParentId && dbEntry.nodes[currentParentId]) {
+            const parsed = parseMarkdownContent(rawText);
+            dbEntry.nodes[currentParentId].content = { richHtml: parsed.richHtml };
+            continue;
+          }
+
+          const noteTitle = fileName.replace(/\.md$/i, '');
+          let noteType: NoteType = 'rich';
+          let noteContent: TreeNode['content'] = {};
+
+          let parsedJson: any = null;
+          if (rawText.trim().startsWith('{') && rawText.trim().endsWith('}')) {
+            try {
+              parsedJson = JSON.parse(rawText.trim());
+            } catch (e) {}
+          }
+
+          const parsedMd = parseMarkdownContent(rawText);
+
+          if (parsedJson && parsedJson.spreadsheet) {
+            noteType = 'spreadsheet';
+            noteContent = parsedJson;
+          } else if (parsedJson && parsedJson.bookmarks) {
+            noteType = 'bookmark';
+            noteContent = parsedJson;
+          } else if (rawText.trim().startsWith('```')) {
+            const codeMatch = rawText.trim().match(/^```([a-zA-Z0-9_\-#+]*)\r?\n([\s\S]*?)```$/);
+            if (codeMatch) {
+              noteType = 'code';
+              noteContent = {
+                code: {
+                  language: codeMatch[1] || 'python',
+                  code: codeMatch[2],
+                },
+              };
+            } else {
+              noteType = 'rich';
+              noteContent = { richHtml: parsedMd.richHtml };
+            }
+          } else {
+            noteType = 'rich';
+            noteContent = { richHtml: parsedMd.richHtml };
+          }
+
+          const noteId = parsedMd.frontMatter?.id || ('node-' + Math.random().toString(36).substr(2, 9));
+          const noteNode: TreeNode = {
+            id: noteId,
+            notebookId: notebook.id,
+            parentId: currentParentId,
+            title: parsedMd.frontMatter?.title || noteTitle,
+            isFolder: false,
+            children: [],
+            type: noteType,
+            tags: parsedMd.tags && parsedMd.tags.length > 0 ? parsedMd.tags : [],
+            created: parsedMd.frontMatter?.created || new Date().toISOString().split('T')[0],
+            updated: parsedMd.frontMatter?.updated || new Date().toISOString().split('T')[0],
+            content: noteContent,
+          };
+          dbEntry.nodes[noteId] = noteNode;
+
+          // Connect bookmarks from note front-matter
+          if (parsedMd.bookmarks && parsedMd.bookmarks.length > 0) {
+            parsedMd.bookmarks.forEach((bm: any) => {
+              if (!dbEntry.sentenceBookmarks.some((e) => e.id === bm.id)) {
+                dbEntry.sentenceBookmarks.push({
+                  id: bm.id || ('bm-' + Math.random().toString(36).substr(2, 9)),
+                  nodeId: noteId,
+                  notebookId: notebook.id,
+                  noteTitle: noteNode.title,
+                  text: bm.text || '',
+                  anchorId: bm.anchorId || `bm-anchor-${Date.now()}`,
+                  createdAt: bm.createdAt || new Date().toISOString().split('T')[0],
+                  color: bm.color || '#f59e0b',
+                  comment: bm.comment,
+                });
+              }
+            });
+          }
+
+          // Connect to parent folder
+          if (currentParentId && dbEntry.nodes[currentParentId]) {
+            const parentNode = dbEntry.nodes[currentParentId];
+            if (!parentNode.children) parentNode.children = [];
+            if (!parentNode.children.includes(noteId)) {
+              parentNode.children.push(noteId);
+            }
+            parentNode.isFolder = true;
+          } else if (currentParentId === null) {
+            if (!notebook.nodeIds.includes(noteId)) {
+              notebook.nodeIds.push(noteId);
+            }
+          }
+        }
+      }
+
+      if (dbMap.size === 0) {
+        alert('ZIP内に有効なデータベースまたはノートデータが見つかりませんでした。');
+        return;
+      }
+
+      // Post-process tree hierarchy validation & parent-child synchronization pass
+      dbMap.forEach((entry) => {
+        const nodes = entry.nodes;
+        Object.values(nodes).forEach((n) => {
+          if (!n.children) n.children = [];
+          if (n.parentId && nodes[n.parentId]) {
+            const p = nodes[n.parentId];
+            if (!p.children) p.children = [];
+            if (!p.children.includes(n.id)) {
+              p.children.push(n.id);
+            }
+            p.isFolder = true;
+          } else if (n.parentId === null) {
+            const nb = Array.from(entry.notebookMap.values()).find((x) => x.id === n.notebookId);
+            if (nb && !nb.nodeIds.includes(n.id)) {
+              nb.nodeIds.push(n.id);
+            }
+          }
+          if (n.children.length > 0) {
+            n.isFolder = true;
+          }
+        });
+      });
+
+      const importedDbs: DatabaseProfile[] = [];
+      dbMap.forEach((entry) => {
+        const nbs = Array.from(entry.notebookMap.values());
+        const firstNodeId = Object.keys(entry.nodes)[0] || null;
+        importedDbs.push({
+          id: 'db-' + Math.random().toString(36).substr(2, 9),
+          name: entry.name,
+          createdAt: new Date().toISOString().split('T')[0],
+          updatedAt: new Date().toISOString().split('T')[0],
+          isDemo: false,
+          notebooks: nbs,
+          nodes: entry.nodes,
+          tags: entry.tags && entry.tags.length > 0 ? entry.tags : INITIAL_TAGS,
+          tabFolders: entry.tabFolders,
+          sentenceBookmarks: entry.sentenceBookmarks || [],
+          figureCaptions: entry.figureCaptions || [],
+          activeNotebookId: nbs[0]?.id || '',
+          activeNodeId: firstNodeId,
+        });
+      });
+
+      const totalNotes = importedDbs.reduce((acc, d) => acc + Object.keys(d.nodes).length, 0);
+      const totalTabFolders = importedDbs.reduce((acc, d) => acc + (d.tabFolders?.length || 0), 0);
+      if (!confirm(`ZIPファイルから ${importedDbs.length} 件のデータベース（計 ${totalTabFolders} 件のタブフォルダ、${totalNotes} 件のフォルダ・ノート）を検出しました。\n\n既存のデータベースと統合して復元しますか？`)) {
+        return;
+      }
+
+      const mergedList = [...databases];
+      importedDbs.forEach((impDb) => {
+        const existingIdx = mergedList.findIndex((d) => d.name === impDb.name);
+        if (existingIdx >= 0) {
+          const existing = mergedList[existingIdx];
+          
+          // Merge tabFolders
+          const mergedTabFolders = [...(existing.tabFolders || [])];
+          (impDb.tabFolders || []).forEach(tf => {
+            if (!mergedTabFolders.some(e => e.id === tf.id || e.name === tf.name)) {
+              mergedTabFolders.push(tf);
+            }
+          });
+
+          // Merge notebooks
+          const newNotebooks = [...existing.notebooks];
+          impDb.notebooks.forEach((nb) => {
+            const existingNb = newNotebooks.find((e) => e.name === nb.name);
+            if (!existingNb) {
+              newNotebooks.push(nb);
+            } else if (!existingNb.folderId && nb.folderId) {
+              existingNb.folderId = nb.folderId;
+            }
+          });
+
+          mergedList[existingIdx] = {
+            ...existing,
+            tabFolders: mergedTabFolders,
+            notebooks: newNotebooks,
+            nodes: { ...existing.nodes, ...impDb.nodes },
+            sentenceBookmarks: [
+              ...(existing.sentenceBookmarks || []),
+              ...(impDb.sentenceBookmarks || []).filter(bm => !(existing.sentenceBookmarks || []).some(e => e.id === bm.id))
+            ],
+            tags: [
+              ...(existing.tags || []),
+              ...(impDb.tags || []).filter(t => !(existing.tags || []).some(e => e.id === t.id || e.name === t.name))
+            ],
+            figureCaptions: [
+              ...(existing.figureCaptions || []),
+              ...(impDb.figureCaptions || []).filter(fc => !(existing.figureCaptions || []).some(e => e.id === fc.id))
+            ],
+            updatedAt: new Date().toISOString().split('T')[0],
+          };
+        } else {
+          mergedList.push(impDb);
+        }
+      });
+
+      // Single Storage: Immediate physical commit exclusively to IndexedDB
+      setDatabases(mergedList);
+      await localforage.setItem('hierarchical_databases', mergedList);
+
+      const activeUpdated = mergedList.find((d) => d.id === activeDatabaseId);
+      if (activeUpdated) {
+        setTabFolders(activeUpdated.tabFolders || []);
+        setNotebooks(activeUpdated.notebooks);
+        setNodes(activeUpdated.nodes);
+        if (activeUpdated.sentenceBookmarks) {
+          setSentenceBookmarks(activeUpdated.sentenceBookmarks);
+        }
+      }
+
+      alert('ZIPファイルからのデータ復元（タブフォルダ、注釈、修飾、ブックマークを含む）が正常に完了しました！');
+    } catch (err) {
+      console.error(err);
+      alert('ZIPファイルの読み込み・復元中にエラーが発生しました。');
+    }
+  };
+
+  // Determine display name for active 階層1 folder
+  const getTabFolderDisplayName = (folderId: string | null): string => {
+    if (!folderId) return '未分類';
+    const folder = tabFolders.find((f) => f.id === folderId);
+    if (!folder) return '未分類';
+    if (folder.parentId) {
+      const parent = tabFolders.find((f) => f.id === folder.parentId);
+      if (parent) {
+        return `${parent.name} / ${folder.name}`;
+      }
+    }
+    return folder.name;
+  };
+
+  const currentSelectedNotebook = notebooks.find((nb) => nb.id === activeNotebookId);
+  const activeTabFolderDisplayName = getTabFolderDisplayName(
+    activeTabFolderId || currentSelectedNotebook?.folderId || null
+  );
+
   return (
     <div id="hierarchical-app-root" className="h-screen w-screen flex flex-col overflow-hidden bg-[#efebe4] font-sans text-stone-900">
-      {/* 1. Top Windows/Desktop Menu Bar */}
-      <TopMenuBar
+      {/* 1. Word-Style Ribbon Interface (ホーム / 挿入 / レイアウト / ツール / ヘルプ) */}
+      <RibbonBar
+        activeRibbonTab={activeRibbonTab}
+        onChangeRibbonTab={setActiveRibbonTab}
+        isRibbonMinimized={Boolean(systemSettings.ribbonMinimized)}
+        onToggleRibbonMinimized={handleToggleRibbonMinimized}
+        activeNotebookName={activeNotebook?.name || 'Notebook'}
+        activeNoteTitle={activeNode?.title}
+        activeNoteType={activeNode?.type}
+        isSaving={isSaving}
+        onSave={handleSave}
         onNewNote={() => handleAddChildNode(null)}
         onNewFolder={handleNewFolder}
-        onSave={handleSave}
-        onDeleteNode={() => activeNodeId && handleRequestDeleteNode(activeNodeId)}
-        onOpenSearch={() => {}}
-        onOpenSpecs={() => setIsSpecsOpen(true)}
-        onOpenFlaskCode={() => setIsFlaskCodeOpen(true)}
-        onOpenManual={() => setIsManualOpen(true)}
-        onExportAllJson={handleExportAllJson}
-        onResetSampleData={handleResetDemoDatabase}
-        isSaving={isSaving}
-        activeNotebookName={activeNotebook?.name || 'Notebook'}
         databases={databases}
         activeDatabaseId={activeDatabaseId}
         activeDatabaseName={currentDb?.name || 'DEMO（デモデータ）'}
-        activeNoteType={activeNode?.type}
-        onChangeNoteType={(type) => activeNode && handleChangeNodeType(activeNode.id, type)}
         onSelectDatabase={handleSelectDatabase}
         onOpenCreateDatabase={() => setIsCreateDbOpen(true)}
         onOpenDatabaseManager={() => setIsDbManagerOpen(true)}
+        onApplyFormat={handleApplyFormat}
         onInsertImage={handleOpenInsertImage}
         onInsertTable={handleInsertTable}
         onInsertCallout={handleInsertCallout}
+        onInsertLink={handleInsertLink}
         onInsertFootnote={handleOpenInsertFootnote}
-        onInsertTextbox={handleInsertTextbox}
-        onToggleBookmarkActive={() => activeNodeId && handleToggleBookmark(activeNodeId)}
-        onBookmarkSentence={handleBookmarkCurrentSentence}
-        onOpenBookmarksTab={handleOpenBookmarksTab}
+        onInsertFigureCaption={handleOpenInsertFigureCaption}
         onInsertBookmarkCard={handleOpenInsertBookmarkCard}
-        onClearAllBookmarks={handleClearAllBookmarks}
-        bookmarkedCount={totalBookmarkedCount + sentenceBookmarks.length}
-        isCurrentNodeBookmarked={Boolean(activeNode?.isBookmarked)}
+        onInsertTextbox={handleInsertTextbox}
+        showRuler={Boolean(systemSettings.showRuler)}
+        onToggleRuler={() => handleUpdateSettingsPartial({ showRuler: !systemSettings.showRuler })}
+        isHierarchy1Collapsed={isHierarchy1Collapsed}
+        onToggleHierarchy1={() => setIsHierarchy1Collapsed(!isHierarchy1Collapsed)}
+        isBookmarked={Boolean(activeNode?.isBookmarked)}
+        onToggleBookmark={() => activeNodeId && handleToggleBookmark(activeNodeId)}
+        onBookmarkSentence={handleBookmarkCurrentSentence}
+        sentenceBookmarksCount={sentenceBookmarks.filter((b) => b.nodeId === activeNode?.id).length}
         onCopyFormat={handleCopyFormat}
         onPasteFormat={handlePasteFormat}
         onClearFormat={handleClearFormat}
+        isFormatPainterActive={isFormatPainterActive}
+        hasCopiedFormat={Boolean(copiedFormat)}
+        copiedFormatSummary={copiedFormat ? formatStateToDescription(copiedFormat) : ''}
+        characterStyles={characterStyles}
+        paragraphStyles={paragraphStyles}
+        activeStyleId={activeStyleId}
+        onApplyStyle={handleApplyStyle}
+        onCreateNewStyle={handleCreateNewStyle}
+        onEditStyle={handleEditStyle}
+        onDeleteStyle={handleDeleteStyle}
+        onToggleHideStyle={handleToggleHideStyle}
+        onResetDefaultStyles={handleResetDefaultStyles}
         onOpenFind={handleOpenFind}
         onOpenReplace={handleOpenReplace}
         onOpenGlobalSearch={handleOpenGlobalSearch}
         onOpenDocxImport={() => setIsDocxImportOpen(true)}
         onOpenOptions={() => setIsOptionsOpen(true)}
+        onOpenSpecs={() => setIsSpecsOpen(true)}
+        onOpenManual={() => setIsManualOpen(true)}
+        onExportAllJson={handleExportAllJson}
+        onImportAllJson={handleImportAllDatabases}
+        onExportDataOnlyZip={handleExportDataOnlyZip}
+        onImportDataOnlyZip={handleImportDataOnlyZip}
+        onResetSampleData={handleResetDemoDatabase}
+        onCleanAndOptimizeDatabase={handleCleanAndOptimizeDatabase}
+        onOpenGitPushModal={() => setIsGitPushModalOpen(true)}
         onOpenErrorLog={() => setIsErrorLogOpen(true)}
+        settings={systemSettings}
+        onUpdateSettings={handleUpdateSettingsPartial}
       />
 
-      {/* EMERGENCY RESTORE BUTTON */}
-      {!hasUsedEmergencyRestore && (
-        <button
-          onClick={handleRestoreNotebooks}
-          className="fixed top-4 right-4 z-[9999] bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-full shadow-2xl font-bold flex items-center space-x-2 border-4 border-white animate-pulse"
-        >
-          <span className="text-xl">🛟</span>
-          <span>緊急：迷子データの復元</span>
-        </button>
+      {/* 2. Top Horizontal Tab Bar: Displays when tabPosition is 'top' */}
+      {systemSettings.tabPosition === 'top' && (
+        <NotebookTabBar
+          notebooks={notebooks}
+          tabFolders={tabFolders}
+          activeFolderId={activeTabFolderId}
+          activeNotebookId={activeNotebookId}
+          openNotebookIds={openNotebookIds}
+          onSelectNotebook={handleSelectNotebook}
+          onSelectFolder={handleSelectTabFolder}
+          onAddNotebook={handleAddNotebook}
+          onDeleteNotebook={handleDeleteNotebook}
+          onRenameNotebook={handleRenameNotebook}
+          onCloseNotebooks={handleCloseNotebooks}
+        />
       )}
-      
-      {/* 2. Top Horizontal Tab Bar: Displays the tabs belonging to the active folder in タブ一覧 */}
-      <NotebookTabBar
-        notebooks={notebooks}
-        tabFolders={tabFolders}
-        activeFolderId={activeTabFolderId}
-        activeNotebookId={activeNotebookId}
-        onSelectNotebook={handleSelectNotebook}
-        onSelectFolder={handleSelectTabFolder}
-        onAddNotebook={handleAddNotebook}
-        onDeleteNotebook={handleDeleteNotebook}
-        onRestoreNotebooks={handleRestoreNotebooks}
-        onRenameNotebook={handleRenameNotebook}
-        onHideNotebooks={handleHideNotebooks}
-      />
 
       {/* 3. Main Workspace Multi-Panel Area */}
       <div className="flex-1 flex overflow-hidden">
@@ -2700,6 +3819,8 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
             onMoveNotebookToFolder={handleMoveNotebookToFolder}
             onDeleteNotebook={handleDeleteNotebook}
             onRestoreNotebooks={handleRestoreNotebooks}
+            isCollapsed={isHierarchy1Collapsed}
+            onToggleCollapse={() => setIsHierarchy1Collapsed(!isHierarchy1Collapsed)}
           />
         )}
 
@@ -2708,6 +3829,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
           nodes={notebookNodes}
           rootNodeIds={rootNodeIds}
           activeNodeId={activeNodeId}
+          activeTabFolderName={activeTabFolderDisplayName}
           onSelectNode={handleSelectNode}
           onAddChildNode={handleAddChildNode}
           onDeleteNode={handleRequestDeleteNode}
@@ -2723,54 +3845,12 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
           onToggleBookmark={handleToggleBookmark}
           isBookmarkFiltered={isBookmarkFiltered}
           onToggleBookmarkFilter={() => setIsBookmarkFiltered(!isBookmarkFiltered)}
+          isHierarchy1Collapsed={isHierarchy1Collapsed}
+          onToggleHierarchy1={() => setIsHierarchy1Collapsed(!isHierarchy1Collapsed)}
         />
 
         {/* Center: Main Multi-Mode Document Editor Area */}
         <div className="flex-1 flex flex-col overflow-hidden bg-white">
-          {/* Editor Formatting & Mode Toolbar */}
-          {activeNode && (
-            <EditorToolbar
-              noteType={activeNode.type}
-              onApplyFormat={handleApplyFormat}
-              onInsertImage={handleOpenInsertImage}
-              onInsertTable={handleInsertTable}
-              onInsertCallout={handleInsertCallout}
-              onInsertLink={handleInsertLink}
-              onInsertFootnote={handleOpenInsertFootnote}
-              onInsertFigureCaption={handleOpenInsertFigureCaption}
-              onInsertBookmarkCard={handleOpenInsertBookmarkCard}
-              onInsertTextbox={handleInsertTextbox}
-              currentColorBadge={activeNode.colorBadge}
-              onChangeColorBadge={(color) => handleChangeColorBadge(activeNode.id, color)}
-              showRuler={systemSettings.showRuler ?? false}
-              onToggleRuler={() => {}}
-              isBookmarked={Boolean(activeNode.isBookmarked)}
-              onToggleBookmark={() => handleToggleBookmark(activeNode.id)}
-              onBookmarkSentence={handleBookmarkCurrentSentence}
-              sentenceBookmarksCount={sentenceBookmarks.filter((b) => b.nodeId === activeNode.id).length}
-              onCopyFormat={handleCopyFormat}
-              onPasteFormat={handlePasteFormat}
-              onClearFormat={handleClearFormat}
-              isFormatPainterActive={isFormatPainterActive}
-              hasCopiedFormat={Boolean(copiedFormat)}
-              copiedFormatSummary={copiedFormat ? formatStateToDescription(copiedFormat) : ''}
-              characterStyles={characterStyles}
-              paragraphStyles={paragraphStyles}
-              activeStyleId={activeStyleId}
-              onApplyStyle={handleApplyStyle}
-              onCreateNewStyle={handleCreateNewStyle}
-              onEditStyle={handleEditStyle}
-              onDeleteStyle={handleDeleteStyle}
-              onToggleHideStyle={handleToggleHideStyle}
-              onOpenFind={handleOpenFind}
-              onOpenReplace={handleOpenReplace}
-              onOpenGlobalSearch={handleOpenGlobalSearch}
-              settings={systemSettings}
-              onOpenOptions={() => setIsOptionsOpen(true)}
-              onSetDefaultTypography={handleSetDefaultTypography}
-            />
-          )}
-
           {/* In-Tab Find & Replace Floating Toolbar */}
           <InTabFindReplaceBar
             isOpen={isFindBarOpen}
@@ -2841,13 +3921,14 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
           )}
         </div>
 
-        {/* Right: Resource Panel (Search, Tags, Bookmarks, History, Scratch) */}
+        {/* Right: Resource Panel (Search, Tags, Bookmarks, History, Scratch, Footnotes) */}
         <ResourcePanel
           tags={tags}
           nodes={nodes}
           activeNode={activeNode}
           history={history}
           notebooks={notebooks}
+          activeNotebookId={activeNotebookId}
           activeTab={resourcePanelTab}
           onTabChange={setResourcePanelTab}
           onSelectNode={handleSelectNode}
@@ -2869,7 +3950,24 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
         />
       </div>
 
-      {/* 4. Bottom Status & Tags Bar */}
+      {/* 4. Bottom Horizontal Tab Bar: Displays when tabPosition is 'bottom' (Initial / Default value) */}
+      {(!systemSettings.tabPosition || systemSettings.tabPosition === 'bottom') && (
+        <NotebookTabBar
+          notebooks={notebooks}
+          tabFolders={tabFolders}
+          activeFolderId={activeTabFolderId}
+          activeNotebookId={activeNotebookId}
+          openNotebookIds={openNotebookIds}
+          onSelectNotebook={handleSelectNotebook}
+          onSelectFolder={handleSelectTabFolder}
+          onAddNotebook={handleAddNotebook}
+          onDeleteNotebook={handleDeleteNotebook}
+          onRenameNotebook={handleRenameNotebook}
+          onCloseNotebooks={handleCloseNotebooks}
+        />
+      )}
+
+      {/* 5. Bottom Status & Tags Bar */}
       <StatusBar
         activeNode={activeNode}
         totalNodeCount={allNotebookNodeIds.length}
@@ -2907,19 +4005,12 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
         isOpen={isManualOpen}
         onClose={() => setIsManualOpen(false)}
         onOpenSpecs={() => setIsSpecsOpen(true)}
-        onOpenFlaskCode={() => setIsFlaskCodeOpen(true)}
       />
 
       {/* Specifications & System Design Document Modal */}
       <SpecsDocModal
         isOpen={isSpecsOpen}
         onClose={() => setIsSpecsOpen(false)}
-      />
-
-      {/* Flask Backend Code Generator & Explorer Modal */}
-      <FlaskCodeViewerModal
-        isOpen={isFlaskCodeOpen}
-        onClose={() => setIsFlaskCodeOpen(false)}
       />
 
       {/* New Database Creation Modal (Specifying DB name first) */}
@@ -2945,6 +4036,10 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
         onImportDatabase={handleImportDatabase}
         onExportAllDatabases={handleExportAllDatabases}
         onImportAllDatabases={handleImportAllDatabases}
+        onImportDataOnlyZip={handleImportDataOnlyZip}
+        onBatchDeleteDatabases={handleBatchDeleteDatabases}
+        onClearAllDatabases={handleClearAllDatabases}
+        onRestoreNotebooks={handleRestoreNotebooks}
       />
 
       {/* Wikipedia-Style Footnote Insertion Modal */}
@@ -3012,6 +4107,7 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
         tabFolders={tabFolders}
         activeTabFolderId={activeTabFolderId}
         onConfirmImport={handleConfirmDocxImport}
+        onConfirmBatchImport={handleConfirmBatchDocxImport}
       />
 
       {/* System Options & Typography / Wrap Configuration Modal (システムオプション) */}
@@ -3026,6 +4122,12 @@ function MainApp({ initialDatabases, initialActiveDatabaseId }: { initialDatabas
       <ErrorLogModal
         isOpen={isErrorLogOpen}
         onClose={() => setIsErrorLogOpen(false)}
+      />
+
+      {/* GitHub Remote Sync & Push Modal */}
+      <GitPushModal
+        isOpen={isGitPushModalOpen}
+        onClose={() => setIsGitPushModalOpen(false)}
       />
     </div>
   );
@@ -3095,6 +4197,15 @@ export default function App() {
           }
         }
         
+        // Pure Single-Storage: Purge redundant database blobs from localStorage to prevent double-saving & free up space
+        try {
+          localStorage.removeItem('hierarchical_databases');
+          localStorage.removeItem('hierarchical_notebooks');
+          localStorage.removeItem('hierarchical_nodes');
+          localStorage.removeItem('hierarchical_tags');
+          localStorage.removeItem('hierarchical_active_db_id');
+        } catch (e) {}
+
         setInitialDatabases(dbs);
         setInitialActiveDatabaseId(activeId);
         setIsDbReady(true);
